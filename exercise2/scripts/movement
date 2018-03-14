@@ -3,34 +3,45 @@
 
 import roslib; roslib.load_manifest('exercise2')
 import rospy
+import sys
 from geometry_msgs.msg import Twist
 from exercise2.msg import Sporocilo
 
+#rostopic pub move_type exercise2/Sporocil'{ukaz: "sestkotnik"}'
+trenutni_ukaz = 'gordol'
+
 def callback(sporocilo):
-    if(sporocilo.ukaz == "krog"):
-      twist = krozi()
-    elif(sporocilo.ukaz == "gordol"):
-      twist = gordol()
-    return twist
+  global trenutni_ukaz  
+  trenutni_ukaz = sporocilo.ukaz
+  rospy.loginfo("SPREMEMBA: %s", trenutni_ukaz)
 
 def listener():
-    rospy.init_node('custom_listener', anonymous=True)
     rospy.Subscriber("move_type", Sporocilo, callback)
-    rospy.spin()
+    #rospy.spin()
 
-def krozi():
-    twist = Twist()
-    twist.linear.x = 0.4
-    #TODO
-    return twist
+def sestkotnik(step):
+  twist = Twist()
+  twist.linear.x = 0.4
+  step = step % 20
 
-def gordol():
-    twist = Twist()
-    twist.linear.x = 0.4
-    #TODO
-    return twist
+  if step % 3 == 0:
+    twist.linear.x = 0
+    twist.angular.z = 1.04 #(90 / 360) * 2 * 3.14
 
-def rectangle_movement(step):
+  return twist
+
+def gordol(step):
+  twist = Twist()
+  twist.linear.x = 0.4
+  step = step % 20
+
+  if step % 4 == 0:
+    twist.linear.x = 0
+    twist.angular.z = 3.14 #(90 / 360) * 2 * 3.14
+
+  return twist
+
+def kvadrat(step):
 
   twist = Twist()
   twist.linear.x = 0.4
@@ -50,11 +61,24 @@ def movement():
   # For the turtlebot simulation and Turtlebot map the topic to /cmd_vel_mux/input/navi
   rospy.init_node('movement')
 
+
   r = rospy.Rate(1)
   pub2.publish("gordol")
+  step = 0.0
+
+  listener()
+  
   while not rospy.is_shutdown():
-    listener()
+
+    if trenutni_ukaz == "sestkotnik":
+      twist = sestkotnik(step)
+    elif trenutni_ukaz == "kvadrat":
+      twist = kvadrat(step)
+    else:
+      twist = gordol(step)
+    rospy.loginfo(trenutni_ukaz)
     pub.publish(twist)
+    step = step + 1.0
     r.sleep()
 
 if __name__ == '__main__':
