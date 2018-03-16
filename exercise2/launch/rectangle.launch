@@ -1,7 +1,7 @@
 <launch>
 
   <node pkg="exercise2" type="movement" name="movement"  output="screen">
-    <remap from="cmd_vel" to="/turtle1/cmd_vel" />
+    <remap from="cmd_vel" to="/cmd_vel_mux/input/navi" />
   </node>
 
 </launch>
