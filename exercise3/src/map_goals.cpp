@@ -6,6 +6,7 @@
 #include <tf/transform_datatypes.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <actionlib/client/simple_action_client.h>
 
 using namespace std;
 using namespace cv;
@@ -123,17 +124,58 @@ int main(int argc, char** argv) {
     map_sub = n.subscribe("map", 10, &mapCallback);
 	goal_pub = n.advertise<geometry_msgs::PoseStamped>("goal", 10);
 
+    MoveBaseClient ac("move_base", true);
+
+    while(!ac.waitForServer(ros::Duration(5.0))){
+         ROS_INFO("Waiting for the move_base action server to come up");
+     }
     namedWindow("Map");
 
     setMouseCallback("Map", mouseCallback, NULL);
-
+    int koordinate [2][4] = {
+        {221,258},
+        {219,294},
+        {246,288},
+        {247,241}
+    };
     while(ros::ok()) {
-
+        /*
         if (!cv_map.empty()) imshow("Map", cv_map);
 
         waitKey(30);
 
         ros::spinOnce();
+        */
+        for(int i = 0; i < 4; i++){
+            int x = koordinate[0][i];
+            int y = koordinate[1][i];
+
+            tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
+            tf::Point transformed = map_transform * pt;
+
+            ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
+
+            move_base_msgs::MoveBaseGoal goal;
+
+            goal.target_pose.header.frame_id = "map";
+            goal.target_pose.header.stamp = ros::Time::now();
+
+            goal.target_pose.pose.position.x = transformed.x();
+            goal.target_pose.pose.orientation.w = 1.0;
+            goal.target_pose.pose.position.y = transformed.y();
+
+            ROS_INFO("Sending goal");
+            ac.sendGoal(goal);
+
+            ac.waitForResult();
+
+            if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+                ROS_INFO("Hooray, the base moved 1 meter forward");
+            else
+                ROS_INFO("The base failed to move forward 1 meter for some reason");
+
+        }
+
     }
     return 0;
 
