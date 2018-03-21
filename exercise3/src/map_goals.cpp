@@ -6,6 +6,7 @@
 #include <tf/transform_datatypes.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
 using namespace std;
@@ -16,9 +17,13 @@ float map_resolution = 0;
 int size_y;
 int size_x;
 tf::Transform map_transform;
+int global_i = 0;
 
 ros::Publisher goal_pub;
 ros::Subscriber map_sub;
+
+
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
     size_x = msg_map->info.width;
@@ -78,6 +83,13 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
 
 void mouseCallback(int event, int x, int y, int, void* data) {
 
+	MoveBaseClient ac("move_base", true);
+
+  while(!ac.waitForServer(ros::Duration(5.0))){
+    ROS_INFO("Waiting for the move_base action server to come up");
+  }
+
+
     if( event != EVENT_LBUTTONDOWN || cv_map.empty())
         return;
 
@@ -90,6 +102,17 @@ void mouseCallback(int event, int x, int y, int, void* data) {
 		return;
 	}else{
 
+	 /*   int koordinate [4][2] = {
+        {221,258},
+        {219,294},
+        {246,288},
+        {247,241}
+    };
+
+            x = koordinate[global_i][0];
+            y = koordinate[global_i][1];
+	global_i++;*/
+
 	
 
 	tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
@@ -97,23 +120,29 @@ void mouseCallback(int event, int x, int y, int, void* data) {
 
     ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
 
-	geometry_msgs::PoseStamped goal;
-	goal.header.frame_id = "map";
-	goal.pose.orientation.w = 1;
-	goal.pose.position.x = transformed.x();
-	goal.pose.position.y = transformed.y();
-	goal.header.stamp = ros::Time::now();
+	//geometry_msgs::PoseStamped goal;
+	move_base_msgs::MoveBaseGoal goal;
+	goal.target_pose.header.stamp = ros::Time::now();
+	goal.target_pose.header.frame_id = "base_link";
+	/*goal.target_pose.pose.orientation.w = 1;
+	goal.target_pose.pose.position.x = transformed.x();
+	goal.target_pose.pose.position.y = transformed.y();*/
 
-	goal_pub.publish(goal);
+	 goal.target_pose.pose.position.x = 1.0;
+  goal.target_pose.pose.orientation.w = 1.0;
+	
+	ROS_INFO("Sending goal");
+	ac.sendGoal(goal);
+	
+	ac.waitForResult();
+
+	  if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+    		ROS_INFO("Hooray, the base moved");
+ 	else
+   		 ROS_INFO("The base failed to move");
 	
 	}
 }
-
-// x   y
-//221 258
-//219 294
-//246 288
-//247 241
 
 int main(int argc, char** argv) {
 
@@ -124,58 +153,18 @@ int main(int argc, char** argv) {
     map_sub = n.subscribe("map", 10, &mapCallback);
 	goal_pub = n.advertise<geometry_msgs::PoseStamped>("goal", 10);
 
-    MoveBaseClient ac("move_base", true);
-
-    while(!ac.waitForServer(ros::Duration(5.0))){
-         ROS_INFO("Waiting for the move_base action server to come up");
-     }
     namedWindow("Map");
 
     setMouseCallback("Map", mouseCallback, NULL);
-    int koordinate [2][4] = {
-        {221,258},
-        {219,294},
-        {246,288},
-        {247,241}
-    };
+
+
     while(ros::ok()) {
-        /*
+
         if (!cv_map.empty()) imshow("Map", cv_map);
 
         waitKey(30);
 
         ros::spinOnce();
-        */
-        for(int i = 0; i < 4; i++){
-            int x = koordinate[0][i];
-            int y = koordinate[1][i];
-
-            tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
-            tf::Point transformed = map_transform * pt;
-
-            ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
-
-            move_base_msgs::MoveBaseGoal goal;
-
-            goal.target_pose.header.frame_id = "map";
-            goal.target_pose.header.stamp = ros::Time::now();
-
-            goal.target_pose.pose.position.x = transformed.x();
-            goal.target_pose.pose.orientation.w = 1.0;
-            goal.target_pose.pose.position.y = transformed.y();
-
-            ROS_INFO("Sending goal");
-            ac.sendGoal(goal);
-
-            ac.waitForResult();
-
-            if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-                ROS_INFO("Hooray, the base moved 1 meter forward");
-            else
-                ROS_INFO("The base failed to move forward 1 meter for some reason");
-
-        }
-
     }
     return 0;
 
