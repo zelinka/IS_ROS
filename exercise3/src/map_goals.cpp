@@ -82,7 +82,7 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
 }
 
 void mouseCallback(int event, int x, int y, int, void* data) {
-
+    ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
 
   while(!ac.waitForServer(ros::Duration(5.0))){
