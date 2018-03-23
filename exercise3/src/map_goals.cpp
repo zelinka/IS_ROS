@@ -17,7 +17,6 @@ float map_resolution = 0;
 int size_y;
 int size_x;
 tf::Transform map_transform;
-int global_i = 0;
 
 ros::Publisher goal_pub;
 ros::Subscriber map_sub;
@@ -82,12 +81,12 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
 }
 
 void mouseCallback(int event, int x, int y, int, void* data) {
-    ros::init(argc, argv, "one_meter");
+    //ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
 
-  while(!ac.waitForServer(ros::Duration(5.0))){
-    ROS_INFO("Waiting for the move_base action server to come up");
-  }
+    while(!ac.waitForServer(ros::Duration(5.0))){
+        ROS_INFO("Waiting for the move_base action server to come up");
+    }
 
 
     if( event != EVENT_LBUTTONDOWN || cv_map.empty())
@@ -113,34 +112,47 @@ void mouseCallback(int event, int x, int y, int, void* data) {
             y = koordinate[global_i][1];
 	global_i++;*/
 
-	
+     
+        int koordinate [4][2] = {
+            {28,169},
+            {60,164},
+            {56,219},
+            {27,247}
+        };
 
-	tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
-	tf::Point transformed = map_transform * pt;
+        int i = 0;
 
-    ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
+        while(i<4) {
+            x = koordinate[i][0];
+            y = koordinate[i][1];
 
-	//geometry_msgs::PoseStamped goal;
-	move_base_msgs::MoveBaseGoal goal;
-	goal.target_pose.header.stamp = ros::Time::now();
-	goal.target_pose.header.frame_id = "base_link";
-	/*goal.target_pose.pose.orientation.w = 1;
-	goal.target_pose.pose.position.x = transformed.x();
-	goal.target_pose.pose.position.y = transformed.y();*/
+            tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
+            tf::Point transformed = map_transform * pt;
 
-	 goal.target_pose.pose.position.x = 1.0;
-  goal.target_pose.pose.orientation.w = 1.0;
-	
-	ROS_INFO("Sending goal");
-	ac.sendGoal(goal);
-	
-	ac.waitForResult();
+            ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
 
-	  if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-    		ROS_INFO("Hooray, the base moved");
- 	else
-   		 ROS_INFO("The base failed to move");
-	
+            //geometry_msgs::PoseStamped goal;
+            move_base_msgs::MoveBaseGoal goal;
+            goal.target_pose.header.stamp = ros::Time::now();
+            goal.target_pose.header.frame_id = "map";
+            goal.target_pose.pose.orientation.w = 1;
+            goal.target_pose.pose.position.x = transformed.x();
+            goal.target_pose.pose.position.y = transformed.y();
+            
+            ROS_INFO("Sending goal");
+            ac.sendGoal(goal);
+            
+            ac.waitForResult();
+
+            if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+                    ROS_INFO("Hooray, the base moved");
+                    i++;
+            }
+            else{
+                ROS_INFO("The base failed to move");
+            }
+        }
+        i = 0;
 	}
 }
 
