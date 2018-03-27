@@ -41,6 +41,7 @@ class The_Ring:
         # Object we use for transforming between coordinate frames
         self.tf_buf = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buf)
+        self.counter = 0
 
 
     def get_pose(self,e,dist):
@@ -93,85 +94,89 @@ class The_Ring:
 
     def image_callback(self,data):
         # print('Iam here!')
+        if(self.counter >= 3):
 
-        try:
-            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        except CvBridgeError as e:
-            print(e)
+            try:
+                cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            except CvBridgeError as e:
+                print(e)
 
-        # Set the dimensions of the image
-        self.dims = cv_image.shape
+            # Set the dimensions of the image
+            self.dims = cv_image.shape
 
-        # Tranform image to gayscale
-        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+            # Tranform image to gayscale
+            gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 
-        # Do histogram equlization
-        img = cv2.equalizeHist(gray)
+            # Do histogram equlization
+            img = cv2.equalizeHist(gray)
 
-        # Binarize the image
-        ret, thresh = cv2.threshold(img, 50, 255, 0)
+            # Binarize the image
+            ret, thresh = cv2.threshold(img, 50, 255, 0)
 
-        # Extract contours
-        contours, hierarchy = cv2.findContours(thresh, 2, 2)
+            # Extract contours
+            contours, hierarchy = cv2.findContours(thresh, 2, 2)
 
-        # Example how to draw the contours
-        # cv2.drawContours(img, contours, -1, (255, 0, 0), 3)
+            # Example how to draw the contours
+            # cv2.drawContours(img, contours, -1, (255, 0, 0), 3)
 
-        # Fit elipses to all extracted contours
-        elps = []
-        for cnt in contours:
-            #     print cnt
-            #     print cnt.shape
-            if cnt.shape[0] >= 20:
-                ellipse = cv2.fitEllipse(cnt)
-                elps.append(ellipse)
-
-
-        # Find two elipses with same centers
-        candidates = []
-        for n in range(len(elps)):
-            for m in range(n + 1, len(elps)):
-                e1 = elps[n]
-                e2 = elps[m]
-                dist = np.sqrt(((e1[0][0] - e2[0][0]) ** 2 + (e1[0][1] - e2[0][1]) ** 2))
-                #             print dist
-                if dist < 5:
-                    candidates.append((e1,e2))
-
-        try:
-            depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
-        except Exception as e:
-            print(e)
-
-        # Extract the depth from the depth image
-        for c in candidates:
-
-            e1 = c[0]
-            e2 = c[1]
-
-            cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
-            cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
-
-            size = (e1[1][0]+e1[1][1])/2
-            center = (e1[0][1], e1[0][0])
-
-            x1 = int(center[0] - size / 2)
-            x2 = int(center[0] + size / 2)
-            x_min = x1 if x1>0 else 0
-            x_max = x2 if x2<cv_image.shape[0] else cv_image.shape[0]
-
-            y1 = int(center[1] - size / 2)
-            y2 = int(center[1] + size / 2)
-            y_min = y1 if y1 > 0 else 0
-            y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
-
-            depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
-
-            self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max,:]))/1000.0)
+            # Fit elipses to all extracted contours
+            elps = []
+            for cnt in contours:
+                #     print cnt
+                #     print cnt.shape
+                if cnt.shape[0] >= 20:
+                    ellipse = cv2.fitEllipse(cnt)
+                    elps.append(ellipse)
 
 
-        cv2.imshow("Image window",cv_image)
-        cv2.waitKey(1)
+            # Find two elipses with same centers
+            candidates = []
+            for n in range(len(elps)):
+                for m in range(n + 1, len(elps)):
+                    e1 = elps[n]
+                    e2 = elps[m]
+                    dist = np.sqrt(((e1[0][0] - e2[0][0]) ** 2 + (e1[0][1] - e2[0][1]) ** 2))
+                    #             print dist
+                    if dist < 5:
+                        candidates.append((e1,e2))
+
+            try:
+                depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
+            except Exception as e:
+                print(e)
+
+            # Extract the depth from the depth image
+            for c in candidates:
+
+                e1 = c[0]
+                e2 = c[1]
+
+                cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
+                cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
+
+                size = (e1[1][0]+e1[1][1])/2
+                center = (e1[0][1], e1[0][0])
+
+                x1 = int(center[0] - size / 2)
+                x2 = int(center[0] + size / 2)
+                x_min = x1 if x1>0 else 0
+                x_max = x2 if x2<cv_image.shape[0] else cv_image.shape[0]
+
+                y1 = int(center[1] - size / 2)
+                y2 = int(center[1] + size / 2)
+                y_min = y1 if y1 > 0 else 0
+                y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
+
+                depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
+
+                self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max,:]))/1000.0)
+
+
+            cv2.imshow("Image window",cv_image)
+            cv2.waitKey(1)
+            self.counter = 0
+        else:
+            self.counter = self.counter + 1
 
 
     def depth_callback(self,data):
