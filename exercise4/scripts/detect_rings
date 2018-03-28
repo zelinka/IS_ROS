@@ -10,11 +10,45 @@ import tf
 import numpy as np
 import tf2_geometry_msgs
 import tf2_ros
+from math import sqrt
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PointStamped, Vector3, Pose
 from cv_bridge import CvBridge, CvBridgeError
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
+
+T_krogov = []
+
+class P_krogi:
+    def __init__(self):
+        self.tocke = []
+    def add(self, tocka):
+        self.tocke.append(tocka)
+
+class P_tocka:
+    def __init__(self,x,y,z):
+        self.x = x
+        self.y = y
+        self.z = z
+
+def euclidian(tocka1, tocka2):
+    return sqrt((tocka1.x-tocka2.x)**2 + (tocka1.y - tocka2.y)**2 +(tocka1.z - tocka2.z)**2)
+
+def centroid(t):
+
+    center = P_tocka(0, 0, 0)
+
+    for tocka in t:
+        center.x += tocka.x
+        center.y += tocka.y
+        center.z += tocka.z
+    
+    l = len(t)
+    center.x /= l
+    center.y /= l
+    center.z /= l
+
+    return center
 
 
 class The_Ring:
@@ -33,7 +67,7 @@ class The_Ring:
 
         # Subscribe to the image and/or depth topic
         self.image_sub = rospy.Subscriber("/camera/rgb/image_color", Image, self.image_callback)
-        # self.depth_sub = rospy.Subscriber("/camera/depth_registered/image_raw", Image, self.depth_callback)
+        #self.depth_sub = rospy.Subscriber("/camera/depth_registered/image_raw", Image, self.depth_callback)
 
         # Publiser for the visualization markers
         self.markers_pub = rospy.Publisher('markers', MarkerArray, queue_size=1000)
@@ -42,7 +76,7 @@ class The_Ring:
         self.tf_buf = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buf)
         self.counter = 0
-
+        self.pot_tocke = []
 
     def get_pose(self,e,dist):
         # Calculate the position of the detected ellipse
@@ -68,41 +102,74 @@ class The_Ring:
         # Get the point in the "map" coordinate system
         point_world = self.tf_buf.transform(point_s,"map")
 
-        # Create a Pose object with the same position
-        pose = Pose()
-        pose.position.x = point_world.point.x
-        pose.position.y = point_world.point.y
-        pose.position.z = point_world.point.z
+        tocka = P_tocka(point_world.point.x, point_world.point.y, point_world.point.z)
 
-        # Create a marker used for visualization
-        self.marker_num += 1
-        marker = Marker()
-        marker.header.stamp = point_world.header.stamp
-        marker.header.frame_id = point_world.header.frame_id
-        marker.pose = pose
-        marker.type = Marker.CUBE
-        marker.action = Marker.ADD
-        marker.frame_locked = False
-        marker.lifetime = rospy.Duration.from_sec(30)
-        marker.id = self.marker_num
-        marker.scale = Vector3(0.1, 0.1, 0.1)
-        marker.color = ColorRGBA(0, 1, 0, 1)
-        self.marker_array.markers.append(marker)
+        #print(point_world.point.x)
 
-        self.markers_pub.publish(self.marker_array)
+        global T_krogov
+
+        if (len(T_krogov) == 0):
+            tmp = P_krogi()
+            tmp.add(tocka)
+            T_krogov.append(tmp)
+
+        else:
+            print(T_krogov[0])
+            for krog in T_krogov:
+                #print(krog.tocke[0].x)
+                tocka2 = krog.tocke[0]
+                print("razdalja",euclidian(tocka, tocka2))
+                if(euclidian(tocka, tocka2) > 0.05):
+                    tmp = P_krogi()
+                    tmp.add(tocka)
+                    T_krogov.append(tmp)
+
+                else:
+                    krog.add(tocka2)
+
+                    if(len(krog.tocke) == 5):
+                        # Create a Pose object with the same position
+                        center = centroid(krog.tocke)
+                        pose = Pose()
+                        pose.position.x = center.x
+                        pose.position.y = center.y
+                        pose.position.z = center.z
+
+                        # Create a marker used for visualization
+                        self.marker_num += 1
+                        marker = Marker()
+                        marker.header.stamp = point_world.header.stamp
+                        marker.header.frame_id = point_world.header.frame_id
+                        marker.pose = pose
+                        marker.type = Marker.CUBE
+                        marker.action = Marker.ADD
+                        marker.frame_locked = False
+                        marker.lifetime = rospy.Duration.from_sec(30)
+                        marker.id = self.marker_num
+                        marker.scale = Vector3(0.1, 0.1, 0.1)
+                        marker.color = ColorRGBA(0, 1, 0, 1)
+                        self.marker_array.markers.append(marker)
+
+                        self.markers_pub.publish(self.marker_array)
+
+
 
 
     def image_callback(self,data):
-        # print('Iam here!')
-        if(self.counter >= 3):
 
+        #print('Iam here!')
+        if(self.counter >= 1):
+            #rospy.loginfo(self.counter)
             try:
                 cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+                
             except CvBridgeError as e:
                 print(e)
-
+            
             # Set the dimensions of the image
             self.dims = cv_image.shape
+            #print(self.dims)
+            #gledamo y = 50 do 320
 
             # Tranform image to gayscale
             gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
@@ -111,22 +178,26 @@ class The_Ring:
             img = cv2.equalizeHist(gray)
 
             # Binarize the image
-            ret, thresh = cv2.threshold(img, 50, 255, 0)
+            ret, thresh = cv2.threshold(img, 100, 255, 0)
+            #cv2.imshow("Binary window", thresh)
 
             # Extract contours
-            contours, hierarchy = cv2.findContours(thresh, 2, 2)
+            contours_, contours, hierarchy = cv2.findContours(thresh, 2, 2)
 
             # Example how to draw the contours
-            # cv2.drawContours(img, contours, -1, (255, 0, 0), 3)
+            cv2.drawContours(cv_image, contours, -1, (0, 0, 255), 3)
 
             # Fit elipses to all extracted contours
             elps = []
             for cnt in contours:
                 #     print cnt
                 #     print cnt.shape
-                if cnt.shape[0] >= 20:
+                #print(cnt)
+                if cnt.shape[0] >= 50:
                     ellipse = cv2.fitEllipse(cnt)
                     elps.append(ellipse)
+                    cv2.drawContours(cv_image, cnt, -1, (255, 0, 0), 3)
+                    cv2.ellipse(cv_image, ellipse, (0, 255, 0), 2)
 
 
             # Find two elipses with same centers
@@ -169,15 +240,14 @@ class The_Ring:
 
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
 
-                self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max,:]))/1000.0)
+                self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
 
 
-            cv2.imshow("Image window",cv_image)
+            #cv2.imshow("Image window",cv_image)
             cv2.waitKey(1)
             self.counter = 0
         else:
             self.counter = self.counter + 1
-
 
     def depth_callback(self,data):
 
