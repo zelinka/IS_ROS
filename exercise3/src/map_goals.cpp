@@ -80,7 +80,13 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
 
 }
 
+
+
 void mouseCallback(int event, int x, int y, int, void* data) {
+
+}
+
+void premikanje() {
     //ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
 
@@ -88,83 +94,60 @@ void mouseCallback(int event, int x, int y, int, void* data) {
         ROS_INFO("Waiting for the move_base action server to come up");
     }
 
-
-    if( event != EVENT_LBUTTONDOWN || cv_map.empty())
-        return;
-
-    int v = (int)cv_map.at<unsigned char>(y, x);
-
-    ROS_INFO("map dims (size_x: %d, size_y: %d) , clicked point (x: %d, y: %d)",size_x, size_y, x, y);
-
-	if (v != 255) {
-		ROS_WARN("Unable to move to (x: %d, y: %d), not reachable", x, y);
-		return;
-	}else{
-
-	 /*   int koordinate [4][2] = {
-        {221,258},
-        {219,294},
-        {246,288},
-        {247,241}
+    int koordinate [15][2] = {
+        {21,215},
+        {32,234},
+        {27,238},
+        {24,223},
+        {53,214},
+        {50,220},
+        {40,198},
+        {33,191},
+        {29,196},
+        {29,169},
+        {51,169},
+        {61,165},
+        {57,160},
+        {46,190},
+        {56,186}
     };
 
-            x = koordinate[global_i][0];
-            y = koordinate[global_i][1];
-	global_i++;*/
+    // i < dolzina int koordinate[]
+    for(int i = 0; i< 15; i++) {
 
-     
-        int koordinate [4][2] = {
-            {21,215},
-            {32,234},
-            {27,238},
-            {24,223},
-            {53,214},
-            {50,220},
-            {40,198},
-            {33,191},
-            {29,196},
-            {29,169},
-            {51,169},
-            {61,165},
-            {57,160},
-            {46,190},
-            {56,186}
-        };
+		int x = koordinate[i][0];
+		int y = koordinate[i][1];
+		
 
-        int i = 0;
+        ROS_INFO("neki4");
+    
+        tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
+        tf::Point transformed = map_transform * pt;
 
-        while(i<4) {
-            x = koordinate[i][0];
-            y = koordinate[i][1];
+        ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
 
-            tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
-            tf::Point transformed = map_transform * pt;
+        move_base_msgs::MoveBaseGoal goal;
+        goal.target_pose.header.stamp = ros::Time::now();
+        goal.target_pose.header.frame_id = "map";
+        goal.target_pose.pose.orientation.w = 1;
+        goal.target_pose.pose.position.x = transformed.x();
+        goal.target_pose.pose.position.y = transformed.y();
+        
+        ROS_INFO("Sending goal");
+        ac.sendGoal(goal);
+        
+        ac.waitForResult();
 
-            ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
-
-            //geometry_msgs::PoseStamped goal;
-            move_base_msgs::MoveBaseGoal goal;
-            goal.target_pose.header.stamp = ros::Time::now();
-            goal.target_pose.header.frame_id = "map";
-            goal.target_pose.pose.orientation.w = 1;
-            goal.target_pose.pose.position.x = transformed.x();
-            goal.target_pose.pose.position.y = transformed.y();
-            
-            ROS_INFO("Sending goal");
-            ac.sendGoal(goal);
-            
-            ac.waitForResult();
-
-            if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
-                    ROS_INFO("Hooray, the base moved");
-                    i++;
-            }
-            else{
-                ROS_INFO("The base failed to move");
-            }
+        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+                ROS_INFO("Hooray, the base moved");
+                i++;
         }
-        i = 0;
+        else{
+            ROS_INFO("The base failed to move");
+        }
 	}
+	
+	return;
 }
 
 int main(int argc, char** argv) {
@@ -183,9 +166,21 @@ int main(int argc, char** argv) {
 
     while(ros::ok()) {
 
-        if (!cv_map.empty()) imshow("Map", cv_map);
-
-        waitKey(30);
+        //if (!cv_map.empty()) imshow("Map", cv_map);
+		
+		premikanje();
+        
+		/*
+		TODO: v premikanju dolocit kje so krogi in shranit nove cilje v new_goals tabelo
+		for(int i=0; i < 3; i++)
+		{
+			TODO:premakni se na lokaicijo new_goals[i];
+				reci nekaj;
+		}
+		*/
+		
+		//to se pol zakomentira.
+		waitKey(30);
 
         ros::spinOnce();
     }
