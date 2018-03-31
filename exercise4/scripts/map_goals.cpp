@@ -20,6 +20,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
+#include <math.h>
 
 
 using namespace std;
@@ -108,7 +109,8 @@ void markersRecieved(const geometry_msgs::Pose msg){
     //ROS_INFO("V MARKERS RECIEVED CALLBACKU");
     array[array_counter][0] = msg.position.x;
     array[array_counter][1] = msg.position.y;
-    ROS_INFO("x=%f y=%f", array[array_counter][0], array[array_counter][1]);
+    ROS_INFO("x=%f y=%f ------- array", array[array_counter][0], array[array_counter][1]);
+    ROS_INFO("x=%f y=%f ------- message", msg.position.x, msg.position.y);
     array_counter++;
 }
 
@@ -123,10 +125,10 @@ void premikanje() {
     }
 
     int koordinate [15][2] = {
-        {30,215},
+        {30,225},
         {32,234},
         {27,238},
-        {27,223},
+        {27,230},
         {53,214},
         {50,220},
         {40,198},
@@ -142,7 +144,7 @@ void premikanje() {
 
     // i < dolzina int koordinate[]
     int i = 0;
-    int num_of_goals = 15;
+    int num_of_goals = 4;
     while(i < num_of_goals) {
 
 
@@ -154,17 +156,24 @@ void premikanje() {
     
         tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
         tf::Point transformed = map_transform * pt;
+        ROS_INFO("Moving to (x: %f, y: %f), i = %d", transformed.x(), transformed.y(), i);
+        ROS_INFO("Moving to (x: %d, y: %d), i = %d", x, y, i); 
 
-        //ROS_INFO("Moving to (x: %f, y: %f), i = %d", transformed.x(), transformed.y(), i);
-        //ROS_INFO("Moving to (x: %d, y: %d), i = %d", x, y, i);
+        if (transformed.x() == 0.0 && transformed.y() == 0.0) {
+            break;
+        }
+
 
 
         move_base_msgs::MoveBaseGoal goal;
         goal.target_pose.header.stamp = ros::Time::now();
         goal.target_pose.header.frame_id = "map";
-        goal.target_pose.pose.orientation.w = 1;
-        goal.target_pose.pose.position.x = transformed.x();
-        goal.target_pose.pose.position.y = transformed.y();
+        goal.target_pose.pose.orientation.x = 0;
+        goal.target_pose.pose.orientation.y = 0;
+        goal.target_pose.pose.orientation.z = 1*sin(1.57/2);
+        goal.target_pose.pose.orientation.w = cos(1.57/2);
+        //goal.target_pose.pose.position.x = transformed.x();
+        //goal.target_pose.pose.position.y = transformed.y();
 
         
         //ROS_INFO("Sending goal");
@@ -175,6 +184,54 @@ void premikanje() {
 
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
+                system("rosrun sound_play say.py 'position'");
+                i++;
+        }
+        else{
+            //ROS_INFO("The base failed to move");
+        }
+    }
+    //ros::spinOnce();
+
+	return;
+}
+
+void pozdravljanje() {
+    //ros::init(argc, argv, "one_meter");
+	MoveBaseClient ac("move_base", true);
+
+    while(!ac.waitForServer(ros::Duration(5.0))){
+        //ROS_INFO("Waiting for the move_base action server to come up");
+    }
+
+    // i < dolzina int koordinate[]
+    int i = 0;
+    while(i < array_counter) {
+
+        ROS_INFO("grem pozdravljat %d", i);
+		float x = array[i][0];
+		float y = array[i][1];
+
+        ROS_INFO("pozdravljam iz map_goals x = %f", x);
+        ROS_INFO("pozdravljam iz map_goals y = %f", y);
+
+        move_base_msgs::MoveBaseGoal goal;
+        goal.target_pose.header.stamp = ros::Time::now();
+        goal.target_pose.header.frame_id = "map";
+        goal.target_pose.pose.orientation.w = 1;
+        goal.target_pose.pose.position.x = x;
+        goal.target_pose.pose.position.y = y;
+
+        
+        ROS_INFO("grem pozdravljat");
+        ac.sendGoal(goal);
+        
+        ac.waitForResult();
+
+
+        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+                //ROS_INFO("Hooray, the base moved");
+                system("rosrun sound_play say.py 'hello circle'");
                 i++;
         }
         else{
@@ -202,13 +259,15 @@ int main(int argc, char** argv) {
 
     //setMouseCallback("Map", mouseCallback, NULL);
 
+    sleep(5);
 
     while(ros::ok()) {
 
         //if (!cv_map.empty()) imshow("Map", cv_map);
 		
 		premikanje();
-
+        ros::spinOnce();
+        pozdravljanje();
         
 		/*
 		TODO: v premikanju dolocit kje so krogi in shranit nove cilje v new_goals tabelo
@@ -220,9 +279,10 @@ int main(int argc, char** argv) {
 		*/
 		
 		//to se pol zakomentira.
-		waitKey(30);
+		//waitKey(30);
 
-        ros::spinOnce();
+        
+        //break;
     }
     return 0;
 

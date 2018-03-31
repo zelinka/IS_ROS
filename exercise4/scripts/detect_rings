@@ -97,6 +97,36 @@ class The_Ring:
         self.counter = 0
         self.pot_tocke = []
  
+    def get_robot_pose(self):
+        trans = self.tf_buf.lookup_transform('map', 'base_link', rospy.Time(0))
+        pose = Pose()
+        pose.position.x = trans.transform.translation.x
+        pose.position.y = trans.transform.translation.y
+        pose.position.z = trans.transform.translation.z
+        return pose
+
+    def pose_length(self, pose):
+        return sqrt(pose.position.x**2 + pose.position.y**2 + pose.position.z**2)
+
+    def get_goal(self, pose_r, pose_c):
+        pose_g = Pose()
+        pose_g.position.x = pose_r.position.x - pose_c.position.x
+        pose_g.position.y = pose_r.position.y - pose_c.position.y
+        pose_g.position.z = pose_r.position.z - pose_c.position.z
+        dist  = self.pose_length(pose_g)
+        pose_g.position.x /= dist
+        pose_g.position.y /= dist
+        pose_g.position.z /= dist
+        pose_g.position.x /= 2
+        pose_g.position.y /= 2
+        pose_g.position.z /= 2
+        pose_final = Pose()
+        pose_final.position.x = pose_c.position.x + pose_g.position.x
+        pose_final.position.y = pose_c.position.y + pose_g.position.y
+        pose_final.position.z = pose_c.position.z + pose_g.position.z
+        return pose_final
+
+
     def get_pose(self,e,dist):
         # Calculate the position of the detected ellipse
  
@@ -104,7 +134,7 @@ class The_Ring:
  
         elipse_x = self.dims[1] / 2 - e[0][0]
         elipse_y = self.dims[0] / 2 - e[0][1]
- 
+        
         angle_to_target = np.arctan2(elipse_x,k_f)
  
         # Get the angles in the base_link relative coordinate system
@@ -163,11 +193,17 @@ class The_Ring:
                         print("dodan marker")
                         # Create a Pose object with the same position
                         center = krog.centroid
+
                         pose = Pose()
+                        pose_robot = self.get_robot_pose()
+
+
                         pose.position.x = center.x
                         pose.position.y = center.y
                         pose.position.z = center.z
-                        self.markers_cilji_pub.publish(pose)
+
+
+                        self.markers_cilji_pub.publish(self.get_goal(pose_robot, pose))
                         # Create a marker used for visualization
                         self.marker_num += 1
                         marker = Marker()
@@ -185,6 +221,27 @@ class The_Ring:
                         for k in T_krogov:
                             print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
                         self.markers_pub.publish(self.marker_array)
+
+                        # Create a marker used for visualization
+                        self.marker_num += 1
+                        marker = Marker()
+                        marker.header.stamp = point_world.header.stamp
+                        marker.header.frame_id = '/map'
+                        marker.pose = self.get_goal(pose_robot, pose)
+                        marker.type = Marker.CUBE
+                        marker.action = Marker.ADD
+                        marker.frame_locked = False
+                        marker.lifetime = rospy.Duration.from_sec(120)
+                        marker.id = self.marker_num
+                        marker.scale = Vector3(0.1, 0.1, 0.1)
+                        marker.color = ColorRGBA(1, 0, 0, 1)
+                        self.marker_array.markers.append(marker)
+                        #for k in T_krogov:
+                        #    print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
+                        self.markers_pub.publish(self.marker_array)
+
+
+
                         
  
             if (novKrog):
@@ -206,7 +263,7 @@ class The_Ring:
  
             # Set the dimensions of the image
             self.dims = cv_image.shape
-            cv_image = cv_image[60:330, 0:self.dims[1]]
+            cv_image = cv_image[80:330, 0:self.dims[1]]
             #print(self.dims)
             #gledamo y = 50 do 320
  
@@ -281,12 +338,12 @@ class The_Ring:
  
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
  
-                depth_image = depth_image[60:330, 0:self.dims[1]]
+                depth_image = depth_image[80:330, 0:self.dims[1]]
  
                 self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
  
  
-            #cv2.imshow("Image window",cv_image)
+            cv2.imshow("Image window",cv_image)
             cv2.waitKey(1)
             self.counter = 0
         else:
