@@ -1,4 +1,14 @@
+//rosrun rqt_reconfigure rqt_reconfigure
+//speed_lim_w = 5.7 -> star parameter
+//speed_lim_v = 0.8 -> star parameter
+//accel_lim_w = 2 -> star parameter
+//accel_lim_v = 1 -> star parameter
+
+
 #include "ros/ros.h"
+
+#include "std_msgs/String.h"
+//#include "exercise4/koordinate_markers.h"
 
 #include <nav_msgs/GetMap.h>
 #include <geometry_msgs/Quaternion.h>
@@ -8,6 +18,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
+#include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Pose.h>
+
 
 using namespace std;
 using namespace cv;
@@ -17,6 +30,11 @@ float map_resolution = 0;
 int size_y;
 int size_x;
 tf::Transform map_transform;
+
+float array[100][2];
+int array_counter = 0;
+
+ros::Subscriber array_sub;
 
 ros::Publisher goal_pub;
 ros::Subscriber map_sub;
@@ -29,7 +47,7 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
     size_y = msg_map->info.height;
 
     if ((size_x < 3) || (size_y < 3) ) {
-        ROS_INFO("Map size is only x: %d,  y: %d . Not running map to image conversion", size_x, size_y);
+        //ROS_INFO("Map size is only x: %d,  y: %d . Not running map to image conversion", size_x, size_y);
         return;
     }
 
@@ -40,7 +58,7 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
 
     map_resolution = msg_map->info.resolution;
 	tf::poseMsgToTF(msg_map->info.origin, map_transform);
-
+    
     const std::vector<int8_t>& map_msg_data (msg_map->data);
 
     unsigned char *cv_map_data = (unsigned char*) cv_map.data;
@@ -69,7 +87,7 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
 
             case 0:
                 cv_map_data[idx] = 255;
-                break;
+                break;        
 
             case 100:
                 cv_map_data[idx] = 0;
@@ -86,19 +104,29 @@ void mouseCallback(int event, int x, int y, int, void* data) {
 
 }
 
+void markersRecieved(const geometry_msgs::Pose msg){
+    //ROS_INFO("V MARKERS RECIEVED CALLBACKU");
+    array[array_counter][0] = msg.position.x;
+    array[array_counter][1] = msg.position.y;
+    ROS_INFO("x=%f y=%f", array[array_counter][0], array[array_counter][1]);
+    array_counter++;
+}
+
+
+
 void premikanje() {
     //ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
 
     while(!ac.waitForServer(ros::Duration(5.0))){
-        ROS_INFO("Waiting for the move_base action server to come up");
+        //ROS_INFO("Waiting for the move_base action server to come up");
     }
 
     int koordinate [15][2] = {
-        {21,215},
+        {30,215},
         {32,234},
         {27,238},
-        {24,223},
+        {27,223},
         {53,214},
         {50,220},
         {40,198},
@@ -113,18 +141,23 @@ void premikanje() {
     };
 
     // i < dolzina int koordinate[]
-    for(int i = 0; i< 15; i++) {
+    int i = 0;
+    int num_of_goals = 15;
+    while(i < num_of_goals) {
+
 
 		int x = koordinate[i][0];
 		int y = koordinate[i][1];
 		
 
-        ROS_INFO("neki4");
+        //ROS_INFO("neki4");
     
         tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
         tf::Point transformed = map_transform * pt;
 
-        ROS_INFO("Moving to (x: %f, y: %f)", transformed.x(), transformed.y());
+        //ROS_INFO("Moving to (x: %f, y: %f), i = %d", transformed.x(), transformed.y(), i);
+        //ROS_INFO("Moving to (x: %d, y: %d), i = %d", x, y, i);
+
 
         move_base_msgs::MoveBaseGoal goal;
         goal.target_pose.header.stamp = ros::Time::now();
@@ -132,21 +165,23 @@ void premikanje() {
         goal.target_pose.pose.orientation.w = 1;
         goal.target_pose.pose.position.x = transformed.x();
         goal.target_pose.pose.position.y = transformed.y();
+
         
-        ROS_INFO("Sending goal");
+        //ROS_INFO("Sending goal");
         ac.sendGoal(goal);
         
         ac.waitForResult();
 
+
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
-                ROS_INFO("Hooray, the base moved");
+                //ROS_INFO("Hooray, the base moved");
                 i++;
         }
         else{
-            ROS_INFO("The base failed to move");
+            //ROS_INFO("The base failed to move");
         }
 	}
-	
+
 	return;
 }
 
@@ -159,9 +194,13 @@ int main(int argc, char** argv) {
     map_sub = n.subscribe("map", 10, &mapCallback);
 	goal_pub = n.advertise<geometry_msgs::PoseStamped>("goal", 10);
 
-    namedWindow("Map");
+    ros::NodeHandle n2;
+    array_sub = n2.subscribe("/markers2",1000,markersRecieved);
+    //ROS_INFO("array_sub subscriban");
+    
+    //namedWindow("Map");
 
-    setMouseCallback("Map", mouseCallback, NULL);
+    //setMouseCallback("Map", mouseCallback, NULL);
 
 
     while(ros::ok()) {
@@ -169,6 +208,7 @@ int main(int argc, char** argv) {
         //if (!cv_map.empty()) imshow("Map", cv_map);
 		
 		premikanje();
+
         
 		/*
 		TODO: v premikanju dolocit kje so krogi in shranit nove cilje v new_goals tabelo
