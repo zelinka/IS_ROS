@@ -22,6 +22,7 @@
 #include <geometry_msgs/Pose.h>
 #include <math.h>
 
+# define PI 3.14159265358979323846 /* pi */
 
 using namespace std;
 using namespace cv;
@@ -32,7 +33,7 @@ int size_y;
 int size_x;
 tf::Transform map_transform;
 
-float array[100][2];
+float array[100][3];
 int array_counter = 0;
 
 ros::Subscriber array_sub;
@@ -109,6 +110,7 @@ void markersRecieved(const geometry_msgs::Pose msg){
     //ROS_INFO("V MARKERS RECIEVED CALLBACKU");
     array[array_counter][0] = msg.position.x;
     array[array_counter][1] = msg.position.y;
+    array[array_counter][2] = msg.position.z;
     ROS_INFO("x=%f y=%f ------- array", array[array_counter][0], array[array_counter][1]);
     ROS_INFO("x=%f y=%f ------- message", msg.position.x, msg.position.y);
     array_counter++;
@@ -124,32 +126,50 @@ void premikanje() {
         //ROS_INFO("Waiting for the move_base action server to come up");
     }
 
-    int koordinate [15][2] = {
-        {30,225},
-        {32,234},
-        {27,238},
-        {27,230},
-        {53,214},
-        {50,220},
-        {40,198},
-        {33,191},
-        {29,196},
-        {29,169},
-        {51,169},
-        {61,165},
-        {57,160},
-        {46,190},
-        {56,186}
+    /* mapa2*/
+    int koordinate [14][3] = {
+        {27,219, -90},
+        {25,196, -90},
+        {22,181, 0},
+        {40,168, -120},
+        {60,165, 90},
+        {60,165, 160},
+        {60,165, -130},
+        {52,183, -30},
+        {52,183, 0},
+        {52,183, 180},
+        {48,220, 30},
+        {25,240, 0},
+        {28,246, -140},
+        {27,219, 90}
     };
+
+    /* mapa3
+    int koordinate [10][3] = {
+        {195,231, 0},
+        {221,222, -140}, //rotacija
+        {236,218, -66}, // rotacija
+        {249,219, 0},
+        {251,229, -160}, //rotacija
+        {256,242, 70}, //rotacija
+        {240,242, -90}, //rotacija
+        {204,252, -10}, //rotacija
+        {175,243, -90}, //rotacija
+        {195,231, 100}
+    }; */
+
 
     // i < dolzina int koordinate[]
     int i = 0;
-    int num_of_goals = 4;
-    while(i < num_of_goals) {
+    int num_of_goals = 14;
 
+    //float pi = 3.14159265358979323846;
+
+    while(i < num_of_goals) {
 
 		int x = koordinate[i][0];
 		int y = koordinate[i][1];
+        float kot = koordinate[i][2]*PI/180;
 		
 
         //ROS_INFO("neki4");
@@ -157,12 +177,14 @@ void premikanje() {
         tf::Point pt((float)x * map_resolution, (float)(size_y-y) * map_resolution, 0.0);
         tf::Point transformed = map_transform * pt;
         ROS_INFO("Moving to (x: %f, y: %f), i = %d", transformed.x(), transformed.y(), i);
-        ROS_INFO("Moving to (x: %d, y: %d), i = %d", x, y, i); 
+        //ROS_INFO("Moving to (x: %d, y: %d), i = %d", x, y, i); 
 
         if (transformed.x() == 0.0 && transformed.y() == 0.0) {
             break;
         }
 
+        //image_converter_23809_1522578337739
+        //image_converter_3935_1522578647698
 
 
         move_base_msgs::MoveBaseGoal goal;
@@ -170,10 +192,10 @@ void premikanje() {
         goal.target_pose.header.frame_id = "map";
         goal.target_pose.pose.orientation.x = 0;
         goal.target_pose.pose.orientation.y = 0;
-        goal.target_pose.pose.orientation.z = 1*sin(1.57/2);
-        goal.target_pose.pose.orientation.w = cos(1.57/2);
-        //goal.target_pose.pose.position.x = transformed.x();
-        //goal.target_pose.pose.position.y = transformed.y();
+        goal.target_pose.pose.orientation.z = 1*sin(kot/2);
+        goal.target_pose.pose.orientation.w = cos(kot/2);
+        goal.target_pose.pose.position.x = transformed.x();
+        goal.target_pose.pose.position.y = transformed.y();
 
         
         //ROS_INFO("Sending goal");
@@ -184,13 +206,20 @@ void premikanje() {
 
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
-                system("rosrun sound_play say.py 'position'");
-                i++;
+                //system("rosrun sound_play say.py 'position'");
+                //i++;
+                ros::Duration(0.5).sleep();
+               
         }
         else{
             //ROS_INFO("The base failed to move");
         }
+        i++;
+        if (i >= num_of_goals){
+            system("rosnode kill /detect_rings");
+        }
     }
+    
     //ros::spinOnce();
 
 	return;
@@ -200,6 +229,7 @@ void pozdravljanje() {
     //ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
 
+
     while(!ac.waitForServer(ros::Duration(5.0))){
         //ROS_INFO("Waiting for the move_base action server to come up");
     }
@@ -208,17 +238,20 @@ void pozdravljanje() {
     int i = 0;
     while(i < array_counter) {
 
-        ROS_INFO("grem pozdravljat %d", i);
+        ROS_INFO("grem pozdravljat %d od %d", i, array_counter);
 		float x = array[i][0];
 		float y = array[i][1];
-
+        float kot = array[i][2]; 
         ROS_INFO("pozdravljam iz map_goals x = %f", x);
         ROS_INFO("pozdravljam iz map_goals y = %f", y);
 
         move_base_msgs::MoveBaseGoal goal;
         goal.target_pose.header.stamp = ros::Time::now();
         goal.target_pose.header.frame_id = "map";
-        goal.target_pose.pose.orientation.w = 1;
+        goal.target_pose.pose.orientation.x = 0;
+        goal.target_pose.pose.orientation.y = 0;
+        goal.target_pose.pose.orientation.z = 1*sin(kot/2);
+        goal.target_pose.pose.orientation.w = cos(kot/2);
         goal.target_pose.pose.position.x = x;
         goal.target_pose.pose.position.y = y;
 
@@ -232,10 +265,16 @@ void pozdravljanje() {
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
                 system("rosrun sound_play say.py 'hello circle'");
-                i++;
+                //i++;
         }
         else{
+            system("rosrun sound_play say.py 'failed to reach goal'");
+            //i++;
             //ROS_INFO("The base failed to move");
+        }
+        i++;
+        if (i >= array_counter && array_counter != 0){
+            system("rosnode kill /map_goals");
         }
 	}
 

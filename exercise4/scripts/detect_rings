@@ -70,7 +70,8 @@ def centroid(t):
  
 class The_Ring:
     def __init__(self):
-        rospy.init_node('image_converter', anonymous=True)
+        # anonymous je bil spremenjen na False, da lahko ubijemo "rosnode kill"
+        rospy.init_node('image_converter', anonymous=False)
  
         # An object we use for converting images between ROS format and OpenCV format
         self.bridge = CvBridge()
@@ -116,16 +117,36 @@ class The_Ring:
         dist  = self.pose_length(pose_g)
         pose_g.position.x /= dist
         pose_g.position.y /= dist
-        pose_g.position.z /= dist
-        pose_g.position.x /= 2
-        pose_g.position.y /= 2
-        pose_g.position.z /= 2
+        #pose_g.position.z /= dist
+        pose_g.position.x *= 0.6
+        pose_g.position.y *= 0.6
+        #pose_g.position.z *= 0.6
+
         pose_final = Pose()
         pose_final.position.x = pose_c.position.x + pose_g.position.x
         pose_final.position.y = pose_c.position.y + pose_g.position.y
-        pose_final.position.z = pose_c.position.z + pose_g.position.z
+        #pose_final.position.z = pose_c.position.z + pose_g.position.z
+        
+        #izracun kota vektorja glede na x os (za rotacijo robota)
+        pose_final.position.z = np.arctan(-pose_g.position.y / -pose_g.position.x)
+
+        if (-pose_g.position.x < 0):
+            pose_final.position.z += np.pi
+        elif(-pose_g.position.x == 0 and -pose_g.position.y < 0):
+            pose_final.position.z += np.pi
+
+        print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
+
         return pose_final
 
+    def double_check(self, krog, circle_confirmation, thresh):
+        global T_krogov
+        for k in T_krogov:
+            if euclidian(k.centroid, krog.centroid) != 0: #ne primerjamo svojega centroida 
+                if len(k.tocke) >= circle_confirmation:   #primerjamo samo centroide markerjev ki so post-ani
+                    if euclidian(k.centroid, krog.centroid) < thresh: 
+                        return False
+        return True
 
     def get_pose(self,e,dist):
         # Calculate the position of the detected ellipse
@@ -158,8 +179,8 @@ class The_Ring:
         global T_krogov
         #print("marker array length", self.marker_num)
         #print("stevilo skupin zaznav", len(T_krogov))
-        circle_confirmation = 10
- 
+        circle_confirmation = 20
+        thresh = 0.8
         """
         if(len(T_krogov) >= 3){
            l1 = 0
@@ -180,7 +201,7 @@ class The_Ring:
             for krog in T_krogov:
                 #print(krog.tocke[0].x)
                 #print("razdalja ",euclidian(tocka, krog.centroid))
-                if(euclidian(tocka, krog.centroid) < 1):
+                if(euclidian(tocka, krog.centroid) < thresh):
  
                     novKrog = False
  
@@ -188,7 +209,7 @@ class The_Ring:
                         krog.add(tocka)
                         dodan = True
  
-                    if(len(krog.tocke) == circle_confirmation):
+                    if(len(krog.tocke) == circle_confirmation and self.double_check(krog,circle_confirmation,thresh)):
                         krog.markirana = True
                         print("dodan marker")
                         # Create a Pose object with the same position
@@ -204,7 +225,7 @@ class The_Ring:
 
 
                         self.markers_cilji_pub.publish(self.get_goal(pose_robot, pose))
-                        # Create a marker used for visualization
+                        # Create a marker used for visualization of circle detection
                         self.marker_num += 1
                         marker = Marker()
                         marker.header.stamp = point_world.header.stamp
@@ -221,8 +242,9 @@ class The_Ring:
                         for k in T_krogov:
                             print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
                         self.markers_pub.publish(self.marker_array)
-
-                        # Create a marker used for visualization
+                        
+                        # Create a marker used for visualization of pozdravljanje goals
+                        '''
                         self.marker_num += 1
                         marker = Marker()
                         marker.header.stamp = point_world.header.stamp
@@ -239,6 +261,7 @@ class The_Ring:
                         #for k in T_krogov:
                         #    print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
                         self.markers_pub.publish(self.marker_array)
+                        '''
 
 
 
@@ -248,7 +271,43 @@ class The_Ring:
                 tmp = P_krogi()
                 tmp.add(tocka)
                 T_krogov.append(tmp)
- 
+
+    def ratio(self,e1,e2):
+
+        (x1,y1), (Ma1, ma1), angle1 = e1 
+        (x2,y2), (Ma2, ma2), angle2 = e2 
+
+        a1 = ma1/2
+        a2 = ma2/2
+        r1 = 0
+
+        b1 = Ma1/2
+        b2 = Ma2/2
+        r2 = 0
+
+        if b1 == 0 or b2 == 0 or a1 == 0 or a2 == 0:
+            return False
+        size = (e1[1][0]+e1[1][1])/2
+        center = (e1[0][1], e1[0][0])
+       
+        r2 = 0
+
+        if b1 < b2:
+            
+            r2 = b2/b1
+        else:
+            r2 = b1/b2
+        
+        if a1 < a2:
+            r1 = a2/a1
+        else:
+            r1 = a1/a2
+        #print("r", r)
+        if r1 > 1.2 and r1 < 1.5:
+            if r2 > 1.2 and r2 < 1.5:
+                return True
+        return False
+
  
     def image_callback(self,data):
  
@@ -263,7 +322,7 @@ class The_Ring:
  
             # Set the dimensions of the image
             self.dims = cv_image.shape
-            cv_image = cv_image[80:330, 0:self.dims[1]]
+            cv_image = cv_image[60:360, 0:self.dims[1]]
             #print(self.dims)
             #gledamo y = 50 do 320
  
@@ -274,8 +333,11 @@ class The_Ring:
             img = cv2.equalizeHist(gray)
  
             # Binarize the image
-            ret, thresh = cv2.threshold(img, 60, 255, 0)
+            #ret, thresh = cv2.threshold(img, 60, 255, 0)
+            thresh = cv2.Canny(img,100,200)
             #cv2.imshow("Binary window", thresh)
+
+
  
             # Extract contours
             contours_, contours, hierarchy = cv2.findContours(thresh, 2, 2)
@@ -289,11 +351,12 @@ class The_Ring:
                 #     print cnt
                 #     print cnt.shape
                 #print(cnt)
-                if cnt.shape[0] >= 50:
+                if cnt.shape[0] >= 60:
                     ellipse = cv2.fitEllipse(cnt)
+
                     elps.append(ellipse)
                     #cv2.drawContours(cv_image, cnt, -1, (255, 0, 0), 3)
-                    #cv2.ellipse(cv_image, ellipse, (0, 255, 0), 2)
+                    cv2.ellipse(cv_image, ellipse, (255, 0, 0), 2)
  
  
             # Find two elipses with same centers
@@ -302,9 +365,12 @@ class The_Ring:
                 for m in range(n + 1, len(elps)):
                     e1 = elps[n]
                     e2 = elps[m]
+
+
+ 
                     dist = np.sqrt(((e1[0][0] - e2[0][0]) ** 2 + (e1[0][1] - e2[0][1]) ** 2))
                     #             print dist
-                    if dist < 5:
+                    if dist < 5 and self.ratio(e1,e2):
                         candidates.append((e1,e2))
  
             try:
@@ -319,7 +385,7 @@ class The_Ring:
  
                 e1 = c[0]
                 e2 = c[1]
- 
+
                 cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
                 cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
  
@@ -338,12 +404,12 @@ class The_Ring:
  
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
  
-                depth_image = depth_image[80:330, 0:self.dims[1]]
+                depth_image = depth_image[60:360, 0:self.dims[1]]
  
                 self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
  
  
-            cv2.imshow("Image window",cv_image)
+            #cv2.imshow("Image window",cv_image)
             cv2.waitKey(1)
             self.counter = 0
         else:
@@ -363,7 +429,7 @@ class The_Ring:
  
         image_viz = np.array(image_1, dtype= np.uint8)
  
-        cv2.imshow("Depth window", image_viz)
+        #cv2.imshow("Depth window", image_viz)
         cv2.waitKey(1)
  
  
