@@ -97,9 +97,19 @@ class The_Ring:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buf)
         self.counter = 0
         self.pot_tocke = []
+        self.time_rec = rospy.Time(0)
  
     def get_robot_pose(self):
-        trans = self.tf_buf.lookup_transform('map', 'base_link', rospy.Time(0))
+        print(rospy.Time.now(),"rospy.Time.now()")    
+        print(self.time_rec,"self.time_rec")  
+        while(True):
+            try:
+                trans = self.tf_buf.lookup_transform('map', 'base_link', self.time_rec)
+            except:
+                #print("error")
+                continue
+            break
+
         pose = Pose()
         pose.position.x = trans.transform.translation.x
         pose.position.y = trans.transform.translation.y
@@ -170,107 +180,143 @@ class The_Ring:
         point_s.header.stamp = rospy.Time(0)
  
         # Get the point in the "map" coordinate system
-        point_world = self.tf_buf.transform(point_s,"map")
- 
-        tocka = P_tocka(point_world.point.x, point_world.point.y, point_world.point.z)
- 
-        #print(point_world.point.x)
- 
-        global T_krogov
-        #print("marker array length", self.marker_num)
-        #print("stevilo skupin zaznav", len(T_krogov))
-        circle_confirmation = 20
-        thresh = 0.8
-        """
-        if(len(T_krogov) >= 3){
-           l1 = 0
-           l2 = 0
-           l3 = 0
-        }
-        """
-        if (len(T_krogov) == 0):
-            tmp = P_krogi()
-            tmp.add(tocka)
-            T_krogov.append(tmp)
- 
-        else:
-            #print(T_krogov[0])
-            dodan = False
-            novKrog = True
-           
-            for krog in T_krogov:
-                #print(krog.tocke[0].x)
-                #print("razdalja ",euclidian(tocka, krog.centroid))
-                if(euclidian(tocka, krog.centroid) < thresh):
- 
-                    novKrog = False
- 
-                    if(len(krog.tocke) < circle_confirmation+1 and not dodan):
-                        krog.add(tocka)
-                        dodan = True
- 
-                    if(len(krog.tocke) == circle_confirmation and self.double_check(krog,circle_confirmation,thresh)):
-                        krog.markirana = True
-                        print("dodan marker")
-                        # Create a Pose object with the same position
-                        center = krog.centroid
+        while(True):
+            try:
+                point_world = self.tf_buf.transform(point_s,"map")
+                #print("while")
+            except:
+                #print("error")
+                continue
+            break
+        
+        '''(point_world.x != None and point_world.y != None and point_world.z != None))or '''
+        if(point_s.point.x != 0 and point_s.point.y != 0):
+        #point_s.header.frame_id = "base_link"
+        #point_s.header.stamp = 
+            
+            pose = Pose()
+            pose.position.x = point_world.point.x
+            pose.position.y = point_world.point.y
+            pose.position.z = point_world.point.z
+            # Create a marker used for visualization of circle detection
+            self.marker_num += 1
+            marker = Marker()
+            marker.header.stamp = point_world.header.stamp
+            marker.header.frame_id = point_world.header.frame_id
+            marker.pose = pose
+            marker.type = Marker.CUBE
+            marker.action = Marker.ADD
+            marker.frame_locked = False
+            marker.lifetime = rospy.Duration.from_sec(120)
+            marker.id = self.marker_num
+            marker.scale = Vector3(0.1, 0.1, 0.1)
+            marker.color = ColorRGBA(0, 1, 0, 1)
+            self.marker_array.markers.append(marker)
+            self.markers_pub.publish(self.marker_array)
+            print("dodana zaznava")
+            
 
-                        pose = Pose()
-                        pose_robot = self.get_robot_pose()
+            tocka = P_tocka(point_world.point.x, point_world.point.y, point_world.point.z)
 
-
-                        pose.position.x = center.x
-                        pose.position.y = center.y
-                        pose.position.z = center.z
-
-
-                        self.markers_cilji_pub.publish(self.get_goal(pose_robot, pose))
-                        # Create a marker used for visualization of circle detection
-                        self.marker_num += 1
-                        marker = Marker()
-                        marker.header.stamp = point_world.header.stamp
-                        marker.header.frame_id = point_world.header.frame_id
-                        marker.pose = pose
-                        marker.type = Marker.CUBE
-                        marker.action = Marker.ADD
-                        marker.frame_locked = False
-                        marker.lifetime = rospy.Duration.from_sec(120)
-                        marker.id = self.marker_num
-                        marker.scale = Vector3(0.1, 0.1, 0.1)
-                        marker.color = ColorRGBA(0, 1, 0, 1)
-                        self.marker_array.markers.append(marker)
-                        for k in T_krogov:
-                            print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
-                        self.markers_pub.publish(self.marker_array)
-                        
-                        # Create a marker used for visualization of pozdravljanje goals
-                        '''
-                        self.marker_num += 1
-                        marker = Marker()
-                        marker.header.stamp = point_world.header.stamp
-                        marker.header.frame_id = '/map'
-                        marker.pose = self.get_goal(pose_robot, pose)
-                        marker.type = Marker.CUBE
-                        marker.action = Marker.ADD
-                        marker.frame_locked = False
-                        marker.lifetime = rospy.Duration.from_sec(120)
-                        marker.id = self.marker_num
-                        marker.scale = Vector3(0.1, 0.1, 0.1)
-                        marker.color = ColorRGBA(1, 0, 0, 1)
-                        self.marker_array.markers.append(marker)
-                        #for k in T_krogov:
-                        #    print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
-                        self.markers_pub.publish(self.marker_array)
-                        '''
-
-
-
-                        
- 
-            if (novKrog):
+            #print(point_world.point.x)
+    
+            global T_krogov
+            #print("marker array length", self.marker_num)
+            #print("stevilo skupin zaznav", len(T_krogov))
+            circle_confirmation = 20
+            thresh = 0.8
+            """
+            if(len(T_krogov) >= 3){
+            l1 = 0
+            l2 = 0
+            l3 = 0
+            }
+            """
+            if (len(T_krogov) == 0):
                 tmp = P_krogi()
                 tmp.add(tocka)
                 T_krogov.append(tmp)
+    
+            else:
+                #print(T_krogov[0])
+                dodan = False
+                novKrog = True
+            
+                for krog in T_krogov:
+                    #print(krog.tocke[0].x)
+                    #print("razdalja ",euclidian(tocka, krog.centroid))
+                    if(euclidian(tocka, krog.centroid) < thresh):
+    
+                        novKrog = False
+    
+                        if(len(krog.tocke) < circle_confirmation+1 and not dodan):
+                            krog.add(tocka)
+                            dodan = True
+    
+                        if(len(krog.tocke) == circle_confirmation and self.double_check(krog,circle_confirmation,thresh)):
+                            krog.markirana = True
+                            print("dodan marker")
+                            # Create a Pose object with the same position
+                            center = krog.centroid
+
+                            pose = Pose()
+                            pose_robot = self.get_robot_pose()
+
+
+                            pose.position.x = center.x
+                            pose.position.y = center.y
+                            pose.position.z = center.z
+
+
+                            self.markers_cilji_pub.publish(self.get_goal(pose_robot, pose))
+                            # Create a marker used for visualization of circle detection
+                            self.marker_num += 1
+                            marker = Marker()
+                            marker.header.stamp = point_world.header.stamp
+                            marker.header.frame_id = point_world.header.frame_id
+                            marker.pose = pose
+                            marker.type = Marker.CUBE
+                            marker.action = Marker.ADD
+                            marker.frame_locked = False
+                            marker.lifetime = rospy.Duration.from_sec(120)
+                            marker.id = self.marker_num
+                            marker.scale = Vector3(0.1, 0.1, 0.1)
+                            marker.color = ColorRGBA(1, 0, 0, 1)
+                            self.marker_array.markers.append(marker)
+                            self.markers_pub.publish(self.marker_array)
+                            
+                            # Create a marker used for visu
+        #point_s.header.frame_id = "base_link"
+        #point_s.header.stamp = alization of pozdravljanje goals
+                            '''
+                            self.marker_num += 1
+                            marker = Marker()
+                            marker.header.stamp = point_world.header.stamp
+                            marker.header.frame_id = '/map'
+                            marker.pose = self.get_goal(pose_robot, pose)
+                            marker.type = Marker.CUBE
+                            marker.action = Marker.ADD
+                            marker.frame_locked = False
+                            marker.lifetime = rospy.Duration.from_sec(120)
+                            marker.id = self.marker_num
+                            marker.scale = Vector3(0.1, 0.1, 0.1)
+                            marker.color = ColorRGBA(1, 0, 0, 1)
+                            self.marker_array.markers.append(marker)
+                            #for k in T_krogov:
+                            #    print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
+                            self.markers_pub.publish(self.marker_array)
+                            '''
+
+
+
+        #point_s.header.frame_id = "base_link"
+        #point_s.header.stamp = 
+                            
+    
+                if (novKrog):
+                    tmp = P_krogi()
+                    tmp.add(tocka)
+                    T_krogov.append(tmp)
 
     def ratio(self,e1,e2):
 
@@ -310,16 +356,16 @@ class The_Ring:
 
  
     def image_callback(self,data):
- 
+        self.time_rec = data.header.stamp
         #print('Iam here!')
-        if(self.counter >= 3):
+        if(self.counter >= 10):
             #rospy.loginfo(self.counter)
             try:
                 cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
                
             except CvBridgeError as e:
                 print(e)
- 
+
             # Set the dimensions of the image
             self.dims = cv_image.shape
             cv_image = cv_image[60:360, 0:self.dims[1]]

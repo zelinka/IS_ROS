@@ -126,7 +126,7 @@ void premikanje() {
         //ROS_INFO("Waiting for the move_base action server to come up");
     }
 
-    /* mapa2*/
+    /* mapa2
     int koordinate [14][3] = {
         {27,219, -90},
         {25,196, -90},
@@ -142,6 +142,23 @@ void premikanje() {
         {25,240, 0},
         {28,246, -140},
         {27,219, 90}
+    };*/
+
+    int koordinate [14][3] = {
+        {52,183, -30},
+        {52,183, 0},
+        {52,183, 180},
+        {48,220, 30},
+        {25,240, 0},
+        {28,246, -140},
+        {27,219, 90},
+		{27,219, 180},
+        {25,196, -90},
+        {22,181, 0},
+        {40,168, -120},
+        {60,165, 90},
+        {60,165, 160},
+        {60,165, -130}
     };
 
     /* mapa3
@@ -216,7 +233,7 @@ void premikanje() {
         }
         i++;
         if (i >= num_of_goals){
-            system("rosnode kill /detect_rings");
+            system("rosnode kill /image_converter");
         }
     }
     
@@ -306,6 +323,7 @@ int main(int argc, char** argv) {
 		
 		premikanje();
         ros::spinOnce();
+        //ROS_INFO("KONCAL Z PREISKOVANJEM> POZDRAVLJANJE");
         pozdravljanje();
         
 		/*
