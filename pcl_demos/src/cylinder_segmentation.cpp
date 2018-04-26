@@ -79,7 +79,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   ne.setInputCloud (cloud_filtered);
   ne.setKSearch (50);
   ne.compute (*cloud_normals);
-  /*
+  
   // Create the segmentation object for the planar model and set all the parameters
   seg.setOptimizeCoefficients (true);
   seg.setModelType (pcl::SACMODEL_NORMAL_PLANE);
@@ -114,25 +114,25 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   extract_normals.setInputCloud (cloud_normals);
   extract_normals.setIndices (inliers_plane);
   extract_normals.filter (*cloud_normals2);
-  */
+  
   // Create the segmentation object for cylinder segmentation and set all the parameters
   //std::cerr << "callback" << std::endl;
   seg.setOptimizeCoefficients (true);
   seg.setModelType (pcl::SACMODEL_CYLINDER);
   seg.setMethodType (pcl::SAC_RANSAC);
   seg.setNormalDistanceWeight (0.1);
-  seg.setMaxIterations (10000);
+  seg.setMaxIterations (5000);
   seg.setDistanceThreshold (0.05);
   seg.setRadiusLimits (0.05, 0.15);
-  seg.setInputCloud (cloud_filtered);
-  seg.setInputNormals (cloud_normals);
+  seg.setInputCloud (cloud_filtered2);
+  seg.setInputNormals (cloud_normals2);
 
   // Obtain the cylinder inliers and coefficients
   seg.segment (*inliers_cylinder, *coefficients_cylinder);
   std::cerr << "Cylinder coefficients: " << *coefficients_cylinder << std::endl;
 
   // Write the cylinder inliers to disk
-  extract.setInputCloud (cloud_filtered);
+  extract.setInputCloud (cloud_filtered2);
   extract.setIndices (inliers_cylinder);
   extract.setNegative (false);
   pcl::PointCloud<PointT>::Ptr cloud_cylinder (new pcl::PointCloud<PointT> ());
@@ -142,7 +142,9 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   else
   {
 	  std::cerr << "PointCloud representing the cylindrical component: " << cloud_cylinder->points.size () << " data points." << std::endl;
-          
+        if (cloud_cylinder->points.size() < 27000) { 
+          return; 
+        }
           pcl::compute3DCentroid (*cloud_cylinder, centroid);
           std::cerr << "centroid of the cylindrical component: " << centroid[0] << " " <<  centroid[1] << " " <<   centroid[2] << " " <<   centroid[3] << std::endl;
 
@@ -209,14 +211,14 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
           marker.color.b=0.0f;
           marker.color.a=1.0f;
 
-	      marker.lifetime = ros::Duration();
+	      //marker.lifetime = ros::Duration();
         //marker_cnt++;
         //markers.markers.resize(marker_cnt);
 
         markers.markers.push_back(marker);
         
         marker_array.publish(markers);
-	      //pubm.publish (marker);
+	      pubm.publish (marker);
 
 	      pcl::PCLPointCloud2 outcloud_cylinder;
           pcl::toPCLPointCloud2 (*cloud_cylinder, outcloud_cylinder);

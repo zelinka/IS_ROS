@@ -3,7 +3,8 @@
 
 
     <node pkg="pcl_demos" type="cylinder_segmentation" name="cylinder_segmentation">
-        <remap from="input" to="planes"/>
+        <!--remap from="input" to="planes"/-->
+        <remap from="input" to="/camera/depth_registered/points"/>
     </node>
 
 </launch>

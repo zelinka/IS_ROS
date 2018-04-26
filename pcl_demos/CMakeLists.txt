@@ -76,3 +76,4 @@ add_executable (minicut_segmentation src/minicut_segmentation.cpp)
 add_executable (region_growing src/region_growing.cpp)
 add_executable (centroid_estimation src/centroid_estimation.cpp)
 
+catkin_install_python(PROGRAMS src/cylinder_marker_clustering.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
