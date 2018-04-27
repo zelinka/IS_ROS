@@ -186,7 +186,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
 	      std::cerr << "point_map: " << point_map.point.x << " " <<  point_map.point.y << " " <<  point_map.point.z << std::endl;
 
 	  	  marker.header.frame_id = "map";
-          marker.header.stamp = ros::Time::now();
+          marker.header.stamp = time_rec;
 
           marker.ns = "cylinder";
           marker.id = marker_cnt++;
@@ -217,7 +217,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
 
         markers.markers.push_back(marker);
         
-        marker_array.publish(markers);
+        //marker_array.publish(markers);
 	      pubm.publish (marker);
 
 	      pcl::PCLPointCloud2 outcloud_cylinder;
@@ -247,7 +247,7 @@ main (int argc, char** argv)
   //pubz = nh.advertise<pcl::PointCloud<PointT> > ("point_cloud", 1);
 
   pubm = nh.advertise<visualization_msgs::Marker>("detected_cylinder",1);
-  marker_array = nh.advertise<visualization_msgs::MarkerArray>("markers", 100);
+  //marker_array = nh.advertise<visualization_msgs::MarkerArray>("markers", 100);
   markers.markers.resize(100);
   marker_cnt = 0;
   // Spin
