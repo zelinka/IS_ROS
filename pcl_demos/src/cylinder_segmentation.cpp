@@ -57,6 +57,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>);
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
   pcl::PointCloud<PointT>::Ptr cloud_filtered2 (new pcl::PointCloud<PointT>);
+  pcl::PointCloud<PointT>::Ptr cloud_filtered_depth (new pcl::PointCloud<PointT>);
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals2 (new pcl::PointCloud<pcl::Normal>);
   pcl::ModelCoefficients::Ptr coefficients_plane (new pcl::ModelCoefficients), coefficients_cylinder (new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers_plane (new pcl::PointIndices), inliers_cylinder (new pcl::PointIndices);
@@ -68,9 +69,15 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   // Build a passthrough filter to remove spurious NaNs
   pass.setInputCloud (cloud);
   pass.setFilterFieldName ("z");
-  pass.setFilterLimits (0, 1.5);
+  pass.setFilterLimits (0.3, 1.5);
+  pass.filter (*cloud_filtered_depth);
+  std::cerr << "PointCloud after depth filtering has: " << cloud_filtered_depth->points.size () << " data points." << std::endl;
+
+  pass.setInputCloud (cloud_filtered_depth);
+  pass.setFilterFieldName ("y");
+  pass.setFilterLimits (-0.25, 0.25);
   pass.filter (*cloud_filtered);
-  std::cerr << "PointCloud after filtering has: " << cloud_filtered->points.size () << " data points." << std::endl;
+  std::cerr << "PointCloud after height filtering has: " << cloud_filtered->points.size () << " data points." << std::endl;
   
   //pubz.publish(cloud_filtered);
 
@@ -123,7 +130,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   seg.setNormalDistanceWeight (0.1);
   seg.setMaxIterations (5000);
   seg.setDistanceThreshold (0.05);
-  seg.setRadiusLimits (0.05, 0.15);
+  seg.setRadiusLimits (0.10, 0.14);
   seg.setInputCloud (cloud_filtered2);
   seg.setInputNormals (cloud_normals2);
 
@@ -142,7 +149,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   else
   {
 	  std::cerr << "PointCloud representing the cylindrical component: " << cloud_cylinder->points.size () << " data points." << std::endl;
-        if (cloud_cylinder->points.size() < 27000) { 
+        if (cloud_cylinder->points.size() < 20000) { 
           return; 
         }
           pcl::compute3DCentroid (*cloud_cylinder, centroid);
