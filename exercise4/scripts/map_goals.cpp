@@ -21,6 +21,7 @@
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
 #include <math.h>
+#include <std_msgs/Int8.h>
 
 # define PI 3.14159265358979323846 /* pi */
 
@@ -40,6 +41,8 @@ ros::Subscriber array_sub;
 
 ros::Publisher goal_pub;
 ros::Subscriber map_sub;
+
+ros::Publisher arm_pub;
 
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -116,7 +119,31 @@ void markersRecieved(const geometry_msgs::Pose msg){
     array_counter++;
 }
 
+int pozicije_roke [3][7] = {
+    {0, 0, 1, 2, 9, 10, 3},
+    {3, 3, 4, 5, 9, 10, 6},
+    {6, 6, 7, 8, 9, 10, 0}
+};
 
+int which = 0;
+
+void kovanec(){
+    std_msgs::Int8 msg;
+
+    for(int i = 0; i < 7; i++){
+        msg.data = pozicije_roke[which][i];
+        arm_pub.publish(msg);
+        if (i < 3)
+            ros::Duration(1).sleep();
+        else
+            ros::Duration(1.5).sleep();
+    }
+
+    which++;
+
+    if(which>3)
+        which = 0;
+}
 
 void premikanje() {
     //ros::init(argc, argv, "one_meter");
@@ -310,34 +337,27 @@ int main(int argc, char** argv) {
     ros::NodeHandle n2;
     array_sub = n2.subscribe("/markers2",1000,markersRecieved);
     //ROS_INFO("array_sub subscriban");
+
+    ros::NodeHandle n3;
+    arm_pub = n3.advertise<std_msgs::Int8>("set_manipulator_position", 10);
     
     //namedWindow("Map");
 
     //setMouseCallback("Map", mouseCallback, NULL);
 
-    sleep(5);
+    //sleep(5);
+    
 
     while(ros::ok()) {
 
         //if (!cv_map.empty()) imshow("Map", cv_map);
 		
-		premikanje();
+		//premikanje();
         ros::spinOnce();
         //ROS_INFO("KONCAL Z PREISKOVANJEM> POZDRAVLJANJE");
-        pozdravljanje();
+        //pozdravljanje();
         
-		/*
-		TODO: v premikanju dolocit kje so krogi in shranit nove cilje v new_goals tabelo
-		for(int i=0; i < 3; i++)
-		{
-			TODO:premakni se na lokaicijo new_goals[i];
-				reci nekaj;
-		}
-		*/
-		
-		//to se pol zakomentira.
-		//waitKey(30);
-
+        kovanec();
         
         //break;
     }
