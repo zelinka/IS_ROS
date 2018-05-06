@@ -171,6 +171,7 @@ void premikanje() {
         {27,219, 90}
     };*/
 
+    /*
     int koordinate [14][3] = {
         {52,183, -30},
         {52,183, 0},
@@ -187,25 +188,35 @@ void premikanje() {
         {60,165, 160},
         {60,165, -130}
     };
+    */
+    int num_of_goals = 20;
 
-    /* mapa3
-    int koordinate [10][3] = {
-        {195,231, 0},
-        {221,222, -140}, //rotacija
-        {236,218, -66}, // rotacija
-        {249,219, 0},
-        {251,229, -160}, //rotacija
-        {256,242, 70}, //rotacija
-        {240,242, -90}, //rotacija
-        {204,252, -10}, //rotacija
-        {175,243, -90}, //rotacija
-        {195,231, 100}
-    }; */
+    int koordinate [num_of_goals][3] = {
+        {52,183, -30},
+        {52,183, 0},
+        {52,183, 180},
+        {41, 198, -10},
+        {41, 198, 100},
+        {55,220, -45},
+        {55,220, 40},
+        {27,243, -45},
+        {27,243, -90},
+        {27,243, -140},
+        {27,243, -220},
+        {27,219, 90},
+		{27,219, 180},
+        {25,196, -90},
+        {22,181, 0},
+        {32, 168, 90},
+        {40,168, -120},
+        {60,165, 90},
+        {60,165, 160},
+        {60,165, -130}
+    };
 
 
     // i < dolzina int koordinate[]
     int i = 0;
-    int num_of_goals = 14;
 
     //float pi = 3.14159265358979323846;
 
@@ -252,7 +263,7 @@ void premikanje() {
                 //ROS_INFO("Hooray, the base moved");
                 //system("rosrun sound_play say.py 'position'");
                 //i++;
-                ros::Duration(0.5).sleep();
+                ros::Duration(0.75).sleep();
                
         }
         else{
@@ -260,7 +271,7 @@ void premikanje() {
         }
         i++;
         if (i >= num_of_goals){
-            system("rosnode kill /image_converter");
+            system("rosnode kill /cylinder_segmentation");
         }
     }
     
@@ -308,6 +319,7 @@ void pozdravljanje() {
 
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
+                kovanec();
                 system("rosrun sound_play say.py 'hello circle'");
                 //i++;
         }
@@ -352,12 +364,10 @@ int main(int argc, char** argv) {
 
         //if (!cv_map.empty()) imshow("Map", cv_map);
 		
-		//premikanje();
+		premikanje();
         ros::spinOnce();
         //ROS_INFO("KONCAL Z PREISKOVANJEM> POZDRAVLJANJE");
-        //pozdravljanje();
-        
-        kovanec();
+        pozdravljanje();
         
         //break;
     }

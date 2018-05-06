@@ -81,7 +81,7 @@ def get_goal(pose_r, pose_c):
         pose_g.position.x /= dist
         pose_g.position.y /= dist
         #pose_g.position.z /= dist
-        param = 0.3
+        param = 0.30
         pose_g.position.x *= param
         pose_g.position.y *= param
         #pose_g.position.z *= 0.6
@@ -98,6 +98,8 @@ def get_goal(pose_r, pose_c):
             pose_final.position.z += np.pi
         elif(-pose_g.position.x == 0 and -pose_g.position.y < 0):
             pose_final.position.z += np.pi
+        kot = 88
+        pose_final.position.z += (np.pi / 180) * kot
 
         print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
 
@@ -218,7 +220,7 @@ def marker_callback(data):
 
 if __name__ == "__main__":
 
-    print("zacetek cylinder marer clustering")
+    print("zacetek cylinder marker filtering")
     rospy.init_node('cylinder_marker_clustering', anonymous=False)
 
     cylinder_array = []

@@ -64,20 +64,20 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   
   // Read in the cloud data
   pcl::fromPCLPointCloud2 (*cloud_blob, *cloud);
-  std::cerr << "PointCloud has: " << cloud->points.size () << " data points." << std::endl;
+  //std::cerr << "PointCloud has: " << cloud->points.size () << " data points." << std::endl;
   
   // Build a passthrough filter to remove spurious NaNs
   pass.setInputCloud (cloud);
   pass.setFilterFieldName ("z");
   pass.setFilterLimits (0.3, 1.5);
   pass.filter (*cloud_filtered_depth);
-  std::cerr << "PointCloud after depth filtering has: " << cloud_filtered_depth->points.size () << " data points." << std::endl;
+  //std::cerr << "PointCloud after depth filtering has: " << cloud_filtered_depth->points.size () << " data points." << std::endl;
 
   pass.setInputCloud (cloud_filtered_depth);
   pass.setFilterFieldName ("y");
   pass.setFilterLimits (-0.25, 0.25);
   pass.filter (*cloud_filtered);
-  std::cerr << "PointCloud after height filtering has: " << cloud_filtered->points.size () << " data points." << std::endl;
+  //std::cerr << "PointCloud after height filtering has: " << cloud_filtered->points.size () << " data points." << std::endl;
   
   //pubz.publish(cloud_filtered);
 
@@ -98,7 +98,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   seg.setInputNormals (cloud_normals);
   // Obtain the plane inliers and coefficients
   seg.segment (*inliers_plane, *coefficients_plane);
-  std::cerr << "Plane coefficients: " << *coefficients_plane << std::endl;
+  //std::cerr << "Plane coefficients: " << *coefficients_plane << std::endl;
 
   // Extract the planar inliers from the input cloud
   extract.setInputCloud (cloud_filtered);
@@ -108,7 +108,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   // Write the planar inliers to disk
   pcl::PointCloud<PointT>::Ptr cloud_plane (new pcl::PointCloud<PointT> ());
   extract.filter (*cloud_plane);
-  std::cerr << "PointCloud representing the planar component: " << cloud_plane->points.size () << " data points." << std::endl;
+  //std::cerr << "PointCloud representing the planar component: " << cloud_plane->points.size () << " data points." << std::endl;
   
   pcl::PCLPointCloud2 outcloud_plane;
   pcl::toPCLPointCloud2 (*cloud_plane, outcloud_plane);
@@ -136,7 +136,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
 
   // Obtain the cylinder inliers and coefficients
   seg.segment (*inliers_cylinder, *coefficients_cylinder);
-  std::cerr << "Cylinder coefficients: " << *coefficients_cylinder << std::endl;
+  //std::cerr << "Cylinder coefficients: " << *coefficients_cylinder << std::endl;
 
   // Write the cylinder inliers to disk
   extract.setInputCloud (cloud_filtered2);
@@ -144,16 +144,16 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
   extract.setNegative (false);
   pcl::PointCloud<PointT>::Ptr cloud_cylinder (new pcl::PointCloud<PointT> ());
   extract.filter (*cloud_cylinder);
-  if (cloud_cylinder->points.empty ()) 
-    std::cerr << "Can't find the cylindrical component." << std::endl;
-  else
-  {
-	  std::cerr << "PointCloud representing the cylindrical component: " << cloud_cylinder->points.size () << " data points." << std::endl;
-        if (cloud_cylinder->points.size() < 20000) { 
+  if (cloud_cylinder->points.empty ()) {
+    //std::cerr << "Can't find the cylindrical component." << std::endl;
+  } else {
+	  //std::cerr << "PointCloud representing the cylindrical component: " << cloud_cylinder->points.size () << " data points." << std::endl;
+        if (cloud_cylinder->points.size() < 29000) { 
           return; 
         }
           pcl::compute3DCentroid (*cloud_cylinder, centroid);
-          std::cerr << "centroid of the cylindrical component: " << centroid[0] << " " <<  centroid[1] << " " <<   centroid[2] << " " <<   centroid[3] << std::endl;
+          std::cerr << "PointCloud representing the cylindrical component: " << cloud_cylinder->points.size () << " data points." << std::endl;
+          //std::cerr << "centroid of the cylindrical component: " << centroid[0] << " " <<  centroid[1] << " " <<   centroid[2] << " " <<   centroid[3] << std::endl;
 
 	  //Create a point in the "camera_rgb_optical_frame"
           geometry_msgs::PointStamped point_camera;
