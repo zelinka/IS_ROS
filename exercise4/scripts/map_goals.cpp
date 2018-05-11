@@ -189,23 +189,25 @@ void premikanje() {
         {60,165, -130}
     };
     */
-    int num_of_goals = 20;
-
+    int num_of_goals = 22;
+    int num_of_destinations = 22;
     int koordinate [num_of_goals][3] = {
+        {55,169, 0},
         {52,183, -30},
-        {52,183, 0},
+        {52,183, 45},
         {52,183, 180},
         {41, 198, -10},
         {41, 198, 100},
         {55,220, -45},
         {55,220, 40},
+        {34, 222, -65},
         {27,243, -45},
         {27,243, -90},
         {27,243, -140},
         {27,243, -220},
         {27,219, 90},
 		{27,219, 180},
-        {25,196, -90},
+        {25,196, -90},//
         {22,181, 0},
         {32, 168, 90},
         {40,168, -120},
@@ -220,7 +222,7 @@ void premikanje() {
 
     //float pi = 3.14159265358979323846;
 
-    while(i < num_of_goals) {
+    while(i < num_of_destinations) {
 
 		int x = koordinate[i][0];
 		int y = koordinate[i][1];
@@ -258,9 +260,8 @@ void premikanje() {
         
         ac.waitForResult();
 
-
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
-                //ROS_INFO("Hooray, the base moved");
+                //ROS_INFO("Hooray, the base moveset_manipulator_positiond");
                 //system("rosrun sound_play say.py 'position'");
                 //i++;
                 ros::Duration(0.75).sleep();
@@ -319,8 +320,8 @@ void pozdravljanje() {
 
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
+                system("rosrun sound_play say.py 'hello cyllinder'");
                 kovanec();
-                system("rosrun sound_play say.py 'hello circle'");
                 //i++;
         }
         else{
@@ -357,8 +358,6 @@ int main(int argc, char** argv) {
 
     //setMouseCallback("Map", mouseCallback, NULL);
 
-    //sleep(5);
-    
 
     while(ros::ok()) {
 
