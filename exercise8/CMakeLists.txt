@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(exercise7)
+project(exercise8)
 
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
@@ -20,6 +20,7 @@ catkin_package()
 #add_executable(map_goals src/map_goals.cpp)
 #target_link_libraries(map_goals ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-catkin_install_python(PROGRAMS scripts/rectify_rings DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-
+catkin_install_python(PROGRAMS scripts/extract_digits DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_install_python(PROGRAMS scripts/extract_qr DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_install_python(PROGRAMS scripts/extract_plot DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 

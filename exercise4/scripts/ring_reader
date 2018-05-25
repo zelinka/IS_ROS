@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+from __future__ import print_function
+ 
+import roslib
+# roslib.load_manifest('exercise4')
+import sys
+import rospy
+import cv2
+import tf
+import numpy as np
+import tf2_geometry_msgs
+import tf2_ros
+from math import sqrt
+from sensor_msgs.msg import Image
+from geometry_msgs.msg import PointStamped, Vector3, Pose
+from cv_bridge import CvBridge, CvBridgeError
+from visualization_msgs.msg import Marker, MarkerArray
+from std_msgs.msg import ColorRGBA
+
+marker_sub = rospy.Subscriber("homography_image", Image, image_callback)
+bridge = CvBridge()
+
+def image_callback(self,data):
+    try:
+        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        
+    except CvBridgeError as e:
+        print(e)
+
+    cv2.imshow('Warped image',cv_image)
+    cv2.waitKey(1)
+
+def __init__(self):
+
+    rospy.init_node('ring_reader', anonymous=False)
+
+
+
+
+

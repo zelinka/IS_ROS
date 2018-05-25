@@ -18,6 +18,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 
 dictm = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+homography_pub = rospy.Publisher("homography_image", Image, queue_size=100)
 
 T_krogov = []
  
@@ -216,7 +217,7 @@ class The_Ring:
             self.marker_array.markers.append(marker)
             self.markers_pub.publish(self.marker_array)
             print("dodana zaznava")
-            '''
+           bridge '''
             
 
             tocka = P_tocka(point_world.point.x, point_world.point.y, point_world.point.z)
@@ -307,7 +308,7 @@ class The_Ring:
                             self.marker_array.markers.append(marker)
                             #for k in T_krogov:
                             #    print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
-                            self.markers_pub.publish(self.marker_array)
+                            self.markehomography_pub = rospy.Publisher("homography_image", Image, queue_size=100)rs_pub.publish(self.marker_array)
                             '''
 
 
@@ -428,12 +429,13 @@ class The_Ring:
                 print(e)
  
             #depth_img = depth_img[60:330, 0:self.dims[1]]
- 
+
             # Extract the depth from the depth image
             for c in candidates:
  
                 e1 = c[0]
                 e2 = c[1]
+
 
                 cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
                 cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
@@ -476,7 +478,7 @@ class The_Ring:
                 cens_mars = np.zeros((4,2))
 
                 if not ids is None:
-                    if len(ids)==4:
+                    if len(ids)>1:
                         print('4 Markers detected')
                 
                         for idx in ids:
@@ -502,6 +504,10 @@ class The_Ring:
                         
                         cv2.imshow('Warped image',img_out)
                         cv2.waitKey(1)
+
+                        img_msg = self.bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
+                        homography_pub.publish(img_msg)
+                        
                     else:
                         print('The number of markers is not ok:',len(ids))
                 else:
@@ -517,8 +523,8 @@ class The_Ring:
                     cv2.ellipse(cv_image,e1,(0,255,0),3)
                     cv2.ellipse(cv_image,e2,(0,255,0),3)
 
-            cv2.imshow('Image',cv_image)
-            cv2.waitKey(1)
+            #cv2.imshow('Image',cv_image)
+            #cv2.waitKey(1)
             self.counter = 0
         else:
             self.counter = self.counter + 1
@@ -544,11 +550,14 @@ class The_Ring:
 def main(args):
  
     ring_finder = The_Ring()
- 
+    
+    
     try:
         rospy.spin()
     except KeyboardInterrupt:
         print("Shutting down")
+
+    
  
     cv2.destroyAllWindows()
  
