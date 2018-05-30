@@ -93,7 +93,7 @@ class The_Ring:
         # Publiser for the visualization markers
         self.markers_pub = rospy.Publisher('markers', MarkerArray, queue_size=1000)
 
-        self.markers_cilji_pub = rospy.Publisher('/markers2', Pose, queue_size=1000)
+        self.markers_cilji_pub = rospy.Publisher('/markers_ring', Pose, queue_size=1000)
  
         # Object we use for transforming between coordinate frames
         self.tf_buf = tf2_ros.Buffer()
@@ -292,7 +292,7 @@ class The_Ring:
                             # Create a marker used for visu
         #point_s.header.frame_id = "base_link"
         #point_s.header.stamp = alization of pozdravljanje goals
-                            '''
+                            
                             self.marker_num += 1
                             marker = Marker()
                             marker.header.stamp = point_world.header.stamp
@@ -304,12 +304,11 @@ class The_Ring:
                             marker.lifetime = rospy.Duration.from_sec(120)
                             marker.id = self.marker_num
                             marker.scale = Vector3(0.1, 0.1, 0.1)
-                            marker.color = ColorRGBA(1, 0, 0, 1)
+                            marker.color = ColorRGBA(0, 1, 0, 1)
                             self.marker_array.markers.append(marker)
                             #for k in T_krogov:
                             #    print("razdalja od tocke do centroida:", euclidian(tocka, k.centroid), ", stevilo zaznav v skupini:",len(k.tocke), "dodana:", k.markirana)
-                            self.markehomography_pub = rospy.Publisher("homography_image", Image, queue_size=100)rs_pub.publish(self.marker_array)
-                            '''
+                            self.markers_pub.publish(self.marker_array)
 
 
 
@@ -437,8 +436,8 @@ class The_Ring:
                 e2 = c[1]
 
 
-                cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
-                cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
+                #cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
+                #cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
  
                 size = (e1[1][0]+e1[1][1])/2
                 center = (e1[0][1], e1[0][0])
@@ -478,7 +477,7 @@ class The_Ring:
                 cens_mars = np.zeros((4,2))
 
                 if not ids is None:
-                    if len(ids)>1:
+                    if len(ids)==4:
                         print('4 Markers detected')
                 
                         for idx in ids:
@@ -502,7 +501,7 @@ class The_Ring:
                         h, status = cv2.findHomography(src_points, out_pts)
                         img_out = cv2.warpPerspective(cv_image, h, (img_out.shape[1],img_out.shape[0]))
                         
-                        cv2.imshow('Warped image',img_out)
+                        #cv2.imshow('Warped image',img_out)
                         cv2.waitKey(1)
 
                         img_msg = self.bridge.cv2_to_imgmsg(img_out, encoding="bgr8")

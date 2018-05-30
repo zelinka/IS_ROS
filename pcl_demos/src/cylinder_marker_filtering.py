@@ -233,9 +233,9 @@ if __name__ == "__main__":
     tf_listener = tf2_ros.TransformListener(tf_buf)
     
     marker_num = 0
-    markers2 = rospy.Publisher("markers2", Pose, queue_size=100)
+    markers2 = rospy.Publisher("/markers_cylinder", Pose, queue_size=100)
     marker_sub = rospy.Subscriber("detected_cylinder", Marker, marker_callback)
 
-    array_pub = rospy.Publisher("markers", MarkerArray, queue_size=100)
+    array_pub = rospy.Publisher("/markers2", MarkerArray, queue_size=100)
 
     rospy.spin()
