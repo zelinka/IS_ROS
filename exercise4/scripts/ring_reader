@@ -5,18 +5,19 @@ import roslib
 # roslib.load_manifest('exercise4')
 import sys
 import rospy
-import cv2
+#import cv2
 import tf
 import numpy as np
 import tf2_geometry_msgs
 import tf2_ros
-from math import sqrt
+#from math import sqrt
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PointStamped, Vector3, Pose
 from cv_bridge import CvBridge, CvBridgeError
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 from std_msgs.msg import String
+from RingReader_local import *
 
 dictm = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 
@@ -201,6 +202,9 @@ def map_goals_callback(data):
                 cv2.waitKey(1)
 
                 img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
+
+                print(extract_data(img_out))
+
                 
             else:
                 print('The number of markers is not ok:',len(ids))
