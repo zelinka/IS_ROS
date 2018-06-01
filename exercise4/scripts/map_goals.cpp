@@ -43,6 +43,7 @@ ros::Subscriber array_sub_c;
 ros::Subscriber array_sub_r;
 
 ros::Publisher goal_pub;
+ros::Publisher homo_pub;
 ros::Subscriber map_sub;
 
 ros::Publisher arm_pub;
@@ -231,8 +232,8 @@ void premikanje() {
 
 
     // i < dolzina int koordinate[]
-    int i = 6;
-    int num_of_destinations = 14;
+    int i = 0;
+    int num_of_destinations = 22;
     //float pi = 3.14159265358979323846;
     ROS_INFO("premikanje");
     while(i < num_of_destinations) {
@@ -286,6 +287,7 @@ void premikanje() {
         i++;
         if (i >= num_of_goals){
             system("rosnode kill /cylinder_segmentation");
+            system("rosnode kill /image_converter");
         }
     }
     
@@ -389,8 +391,10 @@ void pozdravljanje_ring() {
 
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
-                system("rosrun sound_play say.py 'hello cyllinder'");
-                kovanec();
+                system("rosrun sound_play say.py 'my precious'");
+                std_msgs::String msg;
+                msg.data = "";
+                homo_pub.publish(msg);
                 //i++;
         }
         else{
@@ -424,6 +428,8 @@ int main(int argc, char** argv) {
 
     ros::NodeHandle n3;
     arm_pub = n3.advertise<std_msgs::Int8>("set_manipulator_position", 10);
+    ros::NodeHandle n5;
+    homo_pub = n5.advertise<std_msgs::String>("/homography_image_2", 10);
     
     //namedWindow("Map");
 

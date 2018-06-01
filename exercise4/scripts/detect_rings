@@ -142,11 +142,28 @@ class The_Ring:
         
         #izracun kota vektorja glede na x os (za rotacijo robota)
         pose_final.position.z = np.arctan(-pose_g.position.y / -pose_g.position.x)
+        
 
         if (-pose_g.position.x < 0):
             pose_final.position.z += np.pi
         elif(-pose_g.position.x == 0 and -pose_g.position.y < 0):
             pose_final.position.z += np.pi
+        tempKot = pose_final.position.z*180/np.pi
+        if (315 <= tempKot <= 360 or 0 <= tempKot <= 45 or 135 <= tempKot <=225):
+            pose_final.position.y = pose_c.position.y
+            if (315 <= tempKot <= 360 or 0 <= tempKot <= 45):
+                pose_final.position.z = 0
+            else:
+                pose_final.position.z = np.pi
+
+        else:
+            pose_final.position.x = pose_c.position.x
+            if (45 < tempKot < 135):
+                pose_final.position.z = np.pi*0.5
+            else:
+                pose_final.position.z = np.pi*1.5
+
+
 
         print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
 
@@ -334,6 +351,8 @@ class The_Ring:
         b2 = Ma2/2
         r2 = 0
 
+        r3 = a1/b1
+
         if b1 == 0 or b2 == 0 or a1 == 0 or a2 == 0:
             return False
         size = (e1[1][0]+e1[1][1])/2
@@ -351,10 +370,11 @@ class The_Ring:
             r1 = a2/a1
         else:
             r1 = a1/a2
-        #print("r", r)
+        #print("ratio:", r3)
         if r1 > 1.2 and r1 < 1.5:
             if r2 > 1.2 and r2 < 1.5:
-                return True
+                if 0.9 < r3 < 1.3:
+                    return True
         return False
 
  
@@ -371,7 +391,12 @@ class The_Ring:
 
             # Set the dimensions of the image
             self.dims = cv_image.shape
+            #print("self.dims[1]",self.dims[1])
+            #print("self.dims[2]",self.dims[2])
             cv_image = cv_image[60:360, 0:self.dims[1]]
+            #cv_image = cv_image[60:360,80:380]
+            #print("tralala")
+            
             #print(self.dims)
             #gledamo y = 50 do 320
  
@@ -385,7 +410,8 @@ class The_Ring:
             #ret, thresh = cv2.threshold(img, 60, 255, 0)
             thresh = cv2.Canny(img,100,200)
             #cv2.imshow("Binary window", thresh)
-
+            #cv2.imshow("Slika",cv_image)
+            #cv2.waitKey(1)
 
  
             # Extract contours
@@ -450,11 +476,12 @@ class The_Ring:
                 y1 = int(center[1] - size / 2)
                 y2 = int(center[1] + size / 2)
                 y_min = y1 if y1 > 0 else 0
-                y_max = y2 if y2 < cv_image.shape[1] else cv_imagecv_image.shape[1]
+                y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
  
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
  
                 depth_image = depth_image[60:360, 0:self.dims[1]]
+                #depth_image = depth_image[60:360, 80:380]
  
                 self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
  
@@ -477,7 +504,7 @@ class The_Ring:
         image_viz = np.array(image_1, dtype= np.uint8)
  
         #cv2.imshow("Depth window", image_viz)
-        cv2.waitKey(1)
+        #cv2.waitKey(1)
  
  
 def main(args):
