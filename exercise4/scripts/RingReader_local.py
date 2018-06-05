@@ -150,12 +150,45 @@ def extract_data(img):
 
     return data
 
-"""
+def extract_color(img):
+    
+    mask = cv2.imread('/home/team_lambda/ROS/src/exercise4/scripts/mask.jpg',cv2.IMREAD_GRAYSCALE)
+
+    # Use Otsu's thresholding
+    ret,mask = cv2.threshold(mask,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    # count non zero for averaging later
+    n = cv2.countNonZero(mask)
+    #change mask to a 3 channel image 
+    mask = cv2.cvtColor(mask,cv2.COLOR_GRAY2BGR)
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    #apply mask to the hsv image
+    hsv_masked = cv2.subtract(mask,hsv)
+    hsv_masked = cv2.subtract(mask,hsv_masked)
+
+    avg_h = cv2.sumElems(hsv_masked[:,:,0])[0] / n
+
+    print(avg_h)
+
+    if(avg_h > 150 or avg_h < 15):
+        return "red"
+    elif(avg_h > 40 and avg_h < 70):
+        return "green"
+    elif(avg_h > 95 and avg_h < 140):
+        return "blue"
+    elif(avg_h > 20 and avg_h < 35):
+        return "yellow"
+
+    #cv2.imshow('mask',mask)
+    #cv2.waitKey()
+
+
 # extract_data locuje naprej
-img = cv2.imread('/home/lambda/ROS/src/slike/grafmoder.png',cv2.IMREAD_COLOR)
+#img = cv2.imread('C:/Users/Tilen Zelinka/Documents/RIS_slike/qrzelen.png',cv2.IMREAD_COLOR)
+
+#print(extract_color(img))
 
 # read_circle_data(img)
 # extract_text(img)
-print(extract_data(img))
-#extract_plot(img)
-"""
+# print(extract_data(img))
+# extract_plot(img)

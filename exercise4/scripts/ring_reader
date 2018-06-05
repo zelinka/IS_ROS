@@ -71,7 +71,7 @@ def map_goals_callback(data):
 
     # Set the dimensions of the image
     dims = cv_image.shape
-    cv_image = cv_image[60:360, 0:dims[1]]
+    #cv_image = cv_image[60:360, 0:dims[1]]
     #print(self.dims)
     #gledamo y = 50 do 320
 
@@ -154,7 +154,7 @@ def map_goals_callback(data):
         y1 = int(center[1] - size / 2)
         y2 = int(center[1] + size / 2)
         y_min = y1 if y1 > 0 else 0
-        y_max = y2 if y2 < cv_image.shape[1] else cv_imagecv_image.shape[1]
+        y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
 
     if len(candidates)>1:
         print('Ring detected! (hopefully)')
@@ -198,12 +198,13 @@ def map_goals_callback(data):
                 h, status = cv2.findHomography(src_points, out_pts)
                 img_out = cv2.warpPerspective(cv_image, h, (img_out.shape[1],img_out.shape[0]))
                 
-                cv2.imshow('Warped image',img_out)
-                cv2.waitKey(1)
+                #cv2.imshow('Warped image',img_out)
+                #cv2.waitKey(1)
 
                 img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
 
                 print(extract_data(img_out))
+                print(extract_color(img_out))
 
                 
             else:

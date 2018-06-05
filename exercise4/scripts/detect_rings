@@ -131,8 +131,8 @@ class The_Ring:
         pose_g.position.x /= dist
         pose_g.position.y /= dist
         #pose_g.position.z /= dist
-        pose_g.position.x *= 0.6
-        pose_g.position.y *= 0.6
+        pose_g.position.x *= 0.4
+        pose_g.position.y *= 0.4
         #pose_g.position.z *= 0.6
 
         pose_final = Pose()
@@ -142,13 +142,13 @@ class The_Ring:
         
         #izracun kota vektorja glede na x os (za rotacijo robota)
         pose_final.position.z = np.arctan(-pose_g.position.y / -pose_g.position.x)
-        
+        # rotacije robota, kaj je kot robota, v katero smer je obrnjen?
 
         if (-pose_g.position.x < 0):
             pose_final.position.z += np.pi
         elif(-pose_g.position.x == 0 and -pose_g.position.y < 0):
             pose_final.position.z += np.pi
-        tempKot = pose_final.position.z*180/np.pi
+        tempKot = pose_r.position.z*180/np.pi
         if (315 <= tempKot <= 360 or 0 <= tempKot <= 45 or 135 <= tempKot <=225):
             pose_final.position.y = pose_c.position.y
             if (315 <= tempKot <= 360 or 0 <= tempKot <= 45):
@@ -245,7 +245,7 @@ class The_Ring:
             #print("marker array length", self.marker_num)
             #print("stevilo skupin zaznav", len(T_krogov))
             circle_confirmation = 20
-            thresh = 0.8
+            thresh = 0.4
             """
             if(len(T_krogov) >= 3){
             l1 = 0
@@ -373,7 +373,7 @@ class The_Ring:
         #print("ratio:", r3)
         if r1 > 1.2 and r1 < 1.5:
             if r2 > 1.2 and r2 < 1.5:
-                if 0.9 < r3 < 1.3:
+                if 0.9 < r3 < 1.2:
                     return True
         return False
 
@@ -391,9 +391,10 @@ class The_Ring:
 
             # Set the dimensions of the image
             self.dims = cv_image.shape
+            #print("self.dims[0]",self.dims[0])
             #print("self.dims[1]",self.dims[1])
             #print("self.dims[2]",self.dims[2])
-            cv_image = cv_image[60:360, 0:self.dims[1]]
+            cv_image = cv_image[60:-60, 80:-80]
             #cv_image = cv_image[60:360,80:380]
             #print("tralala")
             
@@ -480,7 +481,7 @@ class The_Ring:
  
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
  
-                depth_image = depth_image[60:360, 0:self.dims[1]]
+                depth_image = depth_image[60:-60, 80:-80]
                 #depth_image = depth_image[60:360, 80:380]
  
                 self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)

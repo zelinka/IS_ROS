@@ -203,17 +203,20 @@ void premikanje() {
         {60,165, -130}
     };
     */
-    int num_of_goals = 22;
+    int num_of_goals = 25;
     
     int koordinate [num_of_goals][3] = {
         {55,169, 0},
         {52,183, -30},
         {52,183, 45},
         {52,183, 180},
+        {41, 198, 0},
+        {41, 198, 90},
+        {41, 198, 180},
+        {41, 198, 270},
         {41, 198, -10},
-        {41, 198, 100},
-        {55,220, -45},
-        {55,220, 40},
+        {55,220, 0},
+        {55,220, 135},
         {34, 222, -65},
         {27,243, -45},
         {27,243, -90},
@@ -233,7 +236,7 @@ void premikanje() {
 
     // i < dolzina int koordinate[]
     int i = 0;
-    int num_of_destinations = 22;
+    int num_of_destinations = 25;
     //float pi = 3.14159265358979323846;
     ROS_INFO("premikanje");
     while(i < num_of_destinations) {
@@ -241,7 +244,10 @@ void premikanje() {
 		int x = koordinate[i][0];
 		int y = koordinate[i][1];
         float kot = koordinate[i][2]*PI/180;
-		
+        int kot2 = koordinate[i][2];
+		ROS_INFO("x = %d", x);
+        ROS_INFO("y = %d", y);
+        ROS_INFO("kot = %d", kot2);
 
         //ROS_INFO("neki4");
     
@@ -395,6 +401,7 @@ void pozdravljanje_ring() {
                 std_msgs::String msg;
                 msg.data = "";
                 homo_pub.publish(msg);
+                ROS_INFO("poslano homo_pub");
                 //i++;
         }
         else{
