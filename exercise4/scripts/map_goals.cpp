@@ -35,7 +35,7 @@ int size_x;
 tf::Transform map_transform;
 
 float array_ring[100][3];
-float array_cylinder[100][3];
+float array_cylinder[100][4];
 int array_counter_ring = 0;
 int array_counter_cylinder = 0;
 
@@ -117,7 +117,8 @@ void cylinderRecieved(const geometry_msgs::Pose msg){
     //ROS_INFO("V MARKERS RECIEVED CALLBACKU");
     array_cylinder[array_counter_cylinder][0] = msg.position.x;
     array_cylinder[array_counter_cylinder][1] = msg.position.y;
-    array_cylinder[array_counter_cylinder][2] = msg.position.z;
+    array_cylinder[array_counter_cylinder][2] = msg.position.z; //kot
+    array_cylinder[array_counter_cylinder][3] = msg.orientation.w; //barva 0 R, 1 G, 2 B, 3 Y 
     ROS_INFO("x=%f y=%f ------- array", array_cylinder[array_counter_cylinder][0], array_cylinder[array_counter_cylinder][1]);
     ROS_INFO("x=%f y=%f ------- message", msg.position.x, msg.position.y);
     array_counter_cylinder++;
@@ -317,9 +318,10 @@ void pozdravljanje_cylinder() {
         ROS_INFO("grem pozdravljat cilindre %d od %d", i, array_counter_cylinder);
 		float x = array_cylinder[i][0];
 		float y = array_cylinder[i][1];
-        float kot = array_cylinder[i][2]; 
+        float kot = array_cylinder[i][2];
         ROS_INFO("pozdravljam iz map_goals x = %f", x);
         ROS_INFO("pozdravljam iz map_goals y = %f", y);
+        ROS_INFO("pozdravljam iz map_goals barva = %f", array_cylinder[i][3]);
 
         move_base_msgs::MoveBaseGoal goal;
         goal.target_pose.header.stamp = ros::Time::now();

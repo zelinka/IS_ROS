@@ -171,6 +171,15 @@ def marker_callback(data):
 
     #tocka = C_tocka(data.pose.position.x, data.pose.position.y, data.pose.position.z)
     tocka = data
+
+    barva = data.color
+    print('dobljena barva',barva)
+    rdeca = barva.r
+    zelena = barva.g
+    modra = barva.b
+
+    print('R: ',rdeca,'G: ',zelena,'B: ',modra)
+
     dodan = False
     novKrog = True
     print('stevilo skupin zaznav',len(cylinder_array))
@@ -192,6 +201,23 @@ def marker_callback(data):
         pose.orientation.w = 1
 
         pose_goal = get_goal(pose_robot, pose)
+        # nastavi se barva na orientation.w
+        
+        pose_barva = 0
+
+        if(data.color.r > 0):
+            if(data.color.g > 0):
+                pose_barva = 3
+            else:
+                pose_barva = 0
+        else:
+            if(data.color.g > 0):
+                pose_barva = 1
+            else:
+                pose_barva = 2
+
+        pose_goal.orientation.w = pose_barva
+
         markers2.publish(pose_goal)
         
         marker = Marker()
@@ -204,7 +230,7 @@ def marker_callback(data):
         marker.id = marker_num
         marker_num += 1
         marker.scale = Vector3(0.1, 0.1, 0.1)
-        marker.color = ColorRGBA(255,0,0, 1)
+        marker.color = ColorRGBA(rdeca,zelena,modra, 1)
         marker_array.markers.append(marker)
         array_pub.publish(marker_array)
 

@@ -266,17 +266,31 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
 
     std::cerr << "HSV komponenta: " << hue << " " << saturation << " " <<  value << std::endl;
 
+    double marker_barva[3] = {1.0f, 0.0f, 1.0f};
+
     if(hue > 150 || hue < 15) {
-         std::cerr << "red"<< std::endl; // 174
+        std::cerr << "red"<< std::endl; // 174
+        marker_barva[0] = 1.0f;
+        marker_barva[1] = 0.0f;
+        marker_barva[2] = 0.0f;
     }
     else if(hue > 40 && hue < 70){
         std::cerr << "green"<< std::endl; // 48
+        marker_barva[0] = 0.0f;
+        marker_barva[1] = 1.0f;
+        marker_barva[2] = 0.0f;
     }
     else if(hue > 95 && hue < 140) { // 110
         std::cerr << "blue"<< std::endl;
+        marker_barva[0] = 0.0f;
+        marker_barva[1] = 0.0f;
+        marker_barva[2] = 1.0f;
     }
-    else { // (hue > 15 && hue < 35) // 23
+    else if (hue > 15 && hue < 35) { // 23
         std::cerr << "yellow"<< std::endl;
+        marker_barva[0] = 1.0f;
+        marker_barva[1] = 1.0f;
+        marker_barva[2] = 0.0f;
     }
 
     
@@ -345,10 +359,10 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
     marker.scale.y = 0.1;
     marker.scale.z = 0.1;
 
-    marker.color.r=1.0f;
-    marker.color.g=0.0f;
-    marker.color.b=0.0f;
-    marker.color.a=1.0f;
+    marker.color.r = marker_barva[0];
+    marker.color.g = marker_barva[1];
+    marker.color.b = marker_barva[2];
+    marker.color.a = 1.0f;
 
     //marker.lifetime = ros::Duration();
     //marker_cnt++;
@@ -363,7 +377,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
     pcl::toPCLPointCloud2 (*cloud_cylinder, outcloud_cylinder);
     std::cerr << "\ndodan marker\n" << std::endl;
     puby.publish (outcloud_cylinder);
-
+    std::cerr << "\n publishan marker\n" << std::endl;
   }
   
 }
