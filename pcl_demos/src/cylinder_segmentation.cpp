@@ -35,6 +35,64 @@ visualization_msgs::MarkerArray markers;
 
 int marker_cnt;
 
+typedef struct {
+    double r;       // a fraction between 0 and 1
+    double g;       // a fraction between 0 and 1
+    double b;       // a fraction between 0 and 1
+} rgb;
+
+typedef struct {
+    double h;       // angle in degrees
+    double s;       // a fraction between 0 and 1
+    double v;       // a fraction between 0 and 1
+} hsv;
+
+static hsv   rgb2hsv(rgb in);
+
+hsv rgb2hsv(rgb in)
+{
+    hsv         out;
+    double      min, max, delta;
+
+    min = in.r < in.g ? in.r : in.g;
+    min = min  < in.b ? min  : in.b;
+
+    max = in.r > in.g ? in.r : in.g;
+    max = max  > in.b ? max  : in.b;
+
+    out.v = max;                                // v
+    delta = max - min;
+    if (delta < 0.00001)
+    {
+        out.s = 0;
+        out.h = 0; // undefined, maybe nan?
+        return out;
+    }
+    if( max > 0.0 ) { // NOTE: if Max is == 0, this divide would cause a crash
+        out.s = (delta / max);                  // s
+    } else {
+        // if max is 0, then r = g = b = 0              
+        // s = 0, h is undefined
+        out.s = 0.0;
+        out.h = NAN;                            // its now undefined
+        return out;
+    }
+    if( in.r >= max )                           // > is bogus, just keeps compilor happy
+        out.h = ( in.g - in.b ) / delta;        // between yellow & magenta
+    else
+    if( in.g >= max )
+        out.h = 2.0 + ( in.b - in.r ) / delta;  // between cyan & yellow
+    else
+        out.h = 4.0 + ( in.r - in.g ) / delta;  // between magenta & cyan
+
+    out.h *= 60.0;                              // degrees
+
+    if( out.h < 0.0 )
+        out.h += 360.0;
+
+    return out;
+}
+
 
 void 
 cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
@@ -178,12 +236,54 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
     
     // barve -------------------------------------------------------------------------------------------------------------------------------------------
     // unpack rgb into r/g/b
-    uint32_t rgb = *reinterpret_cast<int*>(&cloud_cylinder->points[0].rgb);
-    int r = (int) (rgb >> 16) & 0x0000ff;
-    int g = (int) (rgb >> 8)  & 0x0000ff;
-    int b = (int) (rgb)       & 0x0000ff;
+    double r_sum  = 0;
+    double g_sum  = 0;
+    double b_sum  = 0;
+
+    for(int i = 0; i < cloud_cylinder->points.size(); i++){
+        uint32_t point_rgb = *reinterpret_cast<int*>(&cloud_cylinder->points[i].rgb);
+
+        r_sum  += (double)((int)(point_rgb >> 16) & 0x0000ff) / 255;
+        g_sum  += (double)((int) (point_rgb >> 8)  & 0x0000ff) / 255;
+        b_sum  += (double)((int) (point_rgb)       & 0x0000ff) / 255;
+
+
+    }
+
+    r_sum /= cloud_cylinder->points.size();
+    g_sum /= cloud_cylinder->points.size();
+    b_sum /= cloud_cylinder->points.size();
+
+    rgb rgb_avg = {r_sum, g_sum, b_sum};
+
+    hsv hsv_avg = rgb2hsv(rgb_avg);
+
+    double hue = hsv_avg.h / 2;
+    double saturation = hsv_avg.s * 255;
+    double value = hsv_avg.v * 255;
+
+    std::cerr << "RGB komponenta: " << r_sum << " " << g_sum << " " <<  b_sum << std::endl;
+
+    std::cerr << "HSV komponenta: " << hue << " " << saturation << " " <<  value << std::endl;
+
+    if(hue > 150 || hue < 15) {
+         std::cerr << "red"<< std::endl; // 174
+    }
+    else if(hue > 40 && hue < 70){
+        std::cerr << "green"<< std::endl; // 48
+    }
+    else if(hue > 95 && hue < 140) { // 110
+        std::cerr << "blue"<< std::endl;
+    }
+    else { // (hue > 15 && hue < 35) // 23
+        std::cerr << "yellow"<< std::endl;
+    }
+
     
-    std::cerr << "RGB komponenta: " << r << " " << g << " " <<  b << std::endl;
+    //std::cerr << "RGB komponenta: " << r << " " << g << " " <<  b << std::endl;
+
+    //rgb to hsv
+    
     
     // barve -------------------------------------------------------------------------------------------------------------------------------------------
 
