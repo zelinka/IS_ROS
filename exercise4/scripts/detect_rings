@@ -143,22 +143,25 @@ class The_Ring:
         #izracun kota vektorja glede na x os (za rotacijo robota)
         pose_final.position.z = np.arctan(-pose_g.position.y / -pose_g.position.x)
         # rotacije robota, kaj je kot robota, v katero smer je obrnjen?
+        #povsod nastavimo x in y
 
         if (-pose_g.position.x < 0):
             pose_final.position.z += np.pi
         elif(-pose_g.position.x == 0 and -pose_g.position.y < 0):
             pose_final.position.z += np.pi
-        tempKot = pose_r.position.z*180/np.pi
-        if (315 <= tempKot <= 360 or 0 <= tempKot <= 45 or 135 <= tempKot <=225):
+
+        tempKot = pose_final.position.z * 180/np.pi
+        print(tempKot)
+        if (315 <= tempKot <= 360 or -45 <= tempKot <= 45 or -360 <= tempKot <= -315 or 135 <= tempKot <= 225 or -225 <= tempKot <= -135):
             pose_final.position.y = pose_c.position.y
-            if (315 <= tempKot <= 360 or 0 <= tempKot <= 45):
+            if (315 <= tempKot <= 360 or -45 <= tempKot <= 45 or -360 <= tempKot <= -315):
                 pose_final.position.z = 0
             else:
                 pose_final.position.z = np.pi
 
         else:
             pose_final.position.x = pose_c.position.x
-            if (45 < tempKot < 135):
+            if (45 < tempKot < 135 or -315 < tempKot < -225):
                 pose_final.position.z = np.pi*0.5
             else:
                 pose_final.position.z = np.pi*1.5
@@ -394,8 +397,8 @@ class The_Ring:
             #print("self.dims[0]",self.dims[0])
             #print("self.dims[1]",self.dims[1])
             #print("self.dims[2]",self.dims[2])
-            cv_image = cv_image[60:-60, 80:-80]
-            #cv_image = cv_image[60:360,80:380]
+            #cv_image = cv_image[60:-60, 80:-80]
+            cv_image = cv_image[60:360,80:380]
             #print("tralala")
             
             #print(self.dims)
@@ -481,8 +484,8 @@ class The_Ring:
  
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
  
-                depth_image = depth_image[60:-60, 80:-80]
-                #depth_image = depth_image[60:360, 80:380]
+                #depth_image = depth_image[60:-60, 80:-80]
+                depth_image = depth_image[60:360, 80:380]
  
                 self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
  
