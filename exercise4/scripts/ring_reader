@@ -21,13 +21,16 @@ from std_msgs.msg import Int32MultiArray
 from RingReader_local import *
 from cceo_invest import *
 
-i = Investor()
+investor = Investor()
 
 colors = ["red", "green", "blue","yellow"]
 
 for c in colors:
     temp = Cceo(c)
-    i.addCceo(temp)
+    investor.addCceo(temp)
+    #default value
+    investor.addReading(c, 0, 0)
+    #
 
 dictm = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 
@@ -72,7 +75,10 @@ def map_goals_callback(data):
     #self.time_rec = data.header.stamp
     #print('Iam here!')
     #rospy.loginfo(self.counter)
-    if(data = "picture"):
+    global investor
+    print(data.data)
+    if data.data == "picture":
+
         data = rospy.wait_for_message('/camera/rgb/image_color', Image)
         try:
             cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
@@ -167,6 +173,7 @@ def map_goals_callback(data):
             y_min = y1 if y1 > 0 else 0
             y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
 
+
         if len(candidates)>1:
             print('Ring detected! (hopefully)')
             corners, ids, _ = cv2.aruco.detectMarkers(cv_image,dictm)
@@ -182,10 +189,10 @@ def map_goals_callback(data):
                                 [img_out.shape[1]-marker_side/2,marker_side/2]])
 
             src_points = np.zeros((4,2))
-            cens_mars = np.zeromarker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
+            cens_mars = np.zeros((4,2))
 
-            if not ids is None:marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
-                if len(ids)==4:marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
+            if not ids is None:
+                if len(ids)==4:
                     print('4 Markers detected')
             
                     for idx in ids:
@@ -214,16 +221,20 @@ def map_goals_callback(data):
 
                     img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
 
-                    read_data = extract_data(img_out))
-                    read_color = extract_color(img_out))
+                    read_data = extract_data(img_out)
+                    read_color = extract_color(img_out)
+                    
+                    print(read_data)
+                    print(read_color)
                     if(read_data != None):
-                        if(len(read_data > 1)):
-                            i.addSlope(read_color,read_data)
+                        if(len(read_data) == 1):
+                            investor.addSlope(read_color,read_data[0])
                         else:
-                            for i in range(0,len(read_data),2)):
+                            for i in range(0,len(read_data),2):
                                 dan = read_data[i]
                                 vrednost = read_data[i+1]
-                                i.addReading((color,dan,vrednost))
+                                investor.addReading(read_color, dan, vrednost)
+                    
 
                     
                 else:
@@ -243,24 +254,27 @@ def map_goals_callback(data):
 
         #cv2.imshow('Image',cv_image)
         #cv2.waitKey(1)
-    elif(data = "next goal"):
+    elif data.data == "next goal":
+        output = "zaporedje "
         goals = []
         pose = Pose()
-        while True:
-        try:
-            next_goal = i.getNextBank()
-            if next_goal = "red":
-                next_goal = 0
-            elif next_goal = "green":
-                next_goal = 1
-            elif next_goal = "blue":
-                next_goal = 2
-            elif next_goal = "yellow":
-                next_goal = 3
-            goals.append(next_goal)
-        except DataError:
-            break
-
+        next_goal = investor.getNextBank()
+        while next_goal != False:
+            try:
+                output += next_goal + " "
+                if next_goal == "red":
+                    next_goal = 0
+                elif next_goal == "green":
+                    next_goal = 1
+                elif next_goal == "blue":
+                    next_goal = 2
+                elif next_goal == "yellow":
+                    next_goal = 3
+                goals.append(next_goal)
+                next_goal = investor.getNextBank()
+            except DataError:
+                break
+        print(output)
         pose.position.x = len(goals)
 
         if len(goals) >= 1:
@@ -272,15 +286,15 @@ def map_goals_callback(data):
         if len(goals) >= 4:
             pose.orientation.w = goals[3]
 
-        marker_pub.publsh(pose)
+        marker_pub.publish(pose)
+        
 
 
 if __name__ == '__main__':
     print("init")
     rospy.init_node('ring_reader', anonymous=False)
     marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
-    marker_pub = rospy.Publisher("regression_result", Pose, map_goals_callback)
-
+    marker_pub = rospy.Publisher("regression_result", Pose,queue_size=1000)
     try:
         rospy.spin()
     

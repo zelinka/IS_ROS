@@ -53,7 +53,7 @@ def extract_plot(img):
     #cv2.imshow('Warped image',img)
     #cv2.waitKey()
 
-    return angle
+    return slope
 
 
 def extract_text(img):
@@ -79,7 +79,7 @@ def extract_text(img):
         x=int(text[0])
         y=int(text[1])
         print('The extracted datapoints are x=%d, y=%d' % (x,y))
-        return text
+        return [x,y]
     else:
         print('The extracted text has is of length %d. Aborting processing' % len(text))
 
@@ -103,7 +103,12 @@ def extract_data(img):
         print("Found a QR code in the image!")
         #print("Data: ", dObject.data,'\n')
         data = dObject.data
-
+        tmp = data.split(';') 
+        data = []
+        for t in tmp:
+            tt = map(float,t.split('_'))
+            data.append(tt[0])
+            data.append(tt[1])
         # Visualize the detected QR code in the image
         points  = dObject.polygon
         if len(points) > 4 : 
@@ -141,9 +146,10 @@ def extract_data(img):
         if (is_plot(img)):
 
             data = extract_plot(img)
-
+            data = [data]
             if(data == None):    # None je v primeru ko je prevelik delez slike crn (verjetno QR)
-                return "Napaka: Na sliki je verjetno QR ampak ni bil prepoznan"
+                print("Napaka: Na sliki je verjetno QR ampak ni bil prepoznan")
+                return None
         else:
             data = extract_text(img)
             #data = "popravi pytesseract"
@@ -176,7 +182,7 @@ def extract_color(img):
         return "green"
     elif(avg_h > 95 and avg_h < 140):
         return "blue"
-    elif(avg_h > 20 and avg_h < 35):
+    elif(avg_h > 15 and avg_h < 35):
         return "yellow"
 
     #cv2.imshow('mask',mask)
@@ -184,8 +190,8 @@ def extract_color(img):
 
 
 # extract_data locuje naprej
-#img = cv2.imread('C:/Users/Tilen Zelinka/Documents/RIS_slike/qrzelen.png',cv2.IMREAD_COLOR)
-
+#img = cv2.imread('/home/lambda/ROS/src/slike/qrrdec.png',cv2.IMREAD_COLOR)
+#print(extract_data(img))
 #print(extract_color(img))
 
 # read_circle_data(img)

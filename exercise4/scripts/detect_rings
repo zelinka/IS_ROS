@@ -131,8 +131,8 @@ class The_Ring:
         pose_g.position.x /= dist
         pose_g.position.y /= dist
         #pose_g.position.z /= dist
-        pose_g.position.x *= 0.4
-        pose_g.position.y *= 0.4
+        pose_g.position.x *= 0.5
+        pose_g.position.y *= 0.5
         #pose_g.position.z *= 0.6
 
         pose_final = Pose()
@@ -165,7 +165,6 @@ class The_Ring:
                 pose_final.position.z = np.pi*0.5
             else:
                 pose_final.position.z = np.pi*1.5
-
 
 
         print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
@@ -247,7 +246,7 @@ class The_Ring:
             global T_krogov
             #print("marker array length", self.marker_num)
             #print("stevilo skupin zaznav", len(T_krogov))
-            circle_confirmation = 20
+            circle_confirmation = 8
             thresh = 0.4
             """
             if(len(T_krogov) >= 3){
@@ -310,8 +309,8 @@ class The_Ring:
                             self.markers_pub.publish(self.marker_array)
                             
                             # Create a marker used for visu
-        #point_s.header.frame_id = "base_link"
-        #point_s.header.stamp = alization of pozdravljanje goals
+                            #point_s.header.frame_id = "base_link"
+                            #point_s.header.stamp = alization of pozdravljanje goals
                             
                             self.marker_num += 1
                             marker = Marker()

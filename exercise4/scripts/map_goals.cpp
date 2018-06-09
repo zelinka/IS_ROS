@@ -154,6 +154,9 @@ void cylinderRecieved(const geometry_msgs::Pose msg){
 
 void regression_result_callback(const geometry_msgs::Pose msg){
     //ros::init(argc, argv, "one_meter");
+
+    ROS_INFO("REGRESSION RESULT CALLBACK");
+
     int len = msg.position.x;
     int reg_goals[len];
 
@@ -177,7 +180,7 @@ void regression_result_callback(const geometry_msgs::Pose msg){
     }
 
     // i < dolzina int koordinate[]
-    for(int i = 0;i < len && i < 3;i++) {
+    for(int i = 0;i < len && i < 4;i++) {
         
         int barva = reg_goals[i];
         ROS_INFO("grem pozdravljat cilindre %d od %d", i, array_counter_cylinder);
@@ -288,8 +291,8 @@ void premikanje() {
         {60,165, -130}
     };
     */
-    int num_of_goals = 25;
     
+    /*
     int koordinate [num_of_goals][3] = {
         {55,169, 0},
         {52,183, -30},
@@ -317,11 +320,37 @@ void premikanje() {
         {60,165, 160},
         {60,165, -130}
     };
-
+    */
+    int num_of_goals = 23;
+    int koordinate [num_of_goals][3] = {
+        {45, 230, 0},
+        {45, 230, 180},
+        {45, 230, 315},
+        {44,268, 90},
+        {44,268, 0},
+        {44,268,270},
+        {20,293, 0},
+        {20,293, 270},
+        {22,272, 250},
+        {22, 272, 180},
+        {22, 272, 90},
+        {30, 249, 0},
+        {30, 249, 90},
+        {30, 249, 180},
+        {18, 245, 270},
+        {15, 227, 0},
+        {15, 227, 90},
+        {15, 227, 180},
+        {18, 217, 90},
+        {18, 217, 270},
+        {45, 208, 0},
+        {45, 208, 90},
+        {45, 208, 180},
+    };
 
     // i < dolzina int koordinate[]
-    int i = 17;
-    int num_of_destinations = 18;
+    int i = 3;
+    int num_of_destinations = 10;
     //float pi = 3.14159265358979323846;
     ROS_INFO("premikanje");
     while(i < num_of_destinations) {
@@ -347,8 +376,7 @@ void premikanje() {
 
         //image_converter_23809_1522578337739
         //image_converter_3935_1522578647698
-
-
+        
         move_base_msgs::MoveBaseGoal goal;
         goal.target_pose.header.stamp = ros::Time::now();
         goal.target_pose.header.frame_id = "map";
