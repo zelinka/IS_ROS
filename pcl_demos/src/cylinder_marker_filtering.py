@@ -15,9 +15,9 @@ from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 
 def euclidian(tocka1, tocka2):
-    print("euclidian")
-    print('tocka x', tocka1.pose.position.x)
-    print('tocka y', tocka1.pose.position.y)
+    #print("euclidian")
+    #print('tocka x', tocka1.pose.position.x)
+    #print('tocka y', tocka1.pose.position.y)
     return sqrt((tocka1.pose.position.x - tocka2.x)**2 + (tocka1.pose.position.y - tocka2.y)**2)
 
 class C_tocka:
@@ -102,7 +102,7 @@ def get_goal(pose_r, pose_c):
         pose_final.position.z += (np.pi / 180) * kot
 
         print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
-
+    
         return pose_final
     
     
@@ -168,80 +168,80 @@ def marker_callback(data):
         print("\ndodan marker in pozicija goal-a\n")
     else:
     '''
+    if(data.pose.position.x != None or data.pose.position.y != None or data.pose.position.z != None):
+        #tocka = C_tocka(data.pose.position.x, data.pose.position.y, data.pose.position.z)
+        tocka = data
 
-    #tocka = C_tocka(data.pose.position.x, data.pose.position.y, data.pose.position.z)
-    tocka = data
+        barva = data.color
+        print('dobljena barva',barva)
+        rdeca = barva.r
+        zelena = barva.g
+        modra = barva.b
 
-    barva = data.color
-    print('dobljena barva',barva)
-    rdeca = barva.r
-    zelena = barva.g
-    modra = barva.b
+        print('R: ',rdeca,'G: ',zelena,'B: ',modra)
 
-    print('R: ',rdeca,'G: ',zelena,'B: ',modra)
+        dodan = False
+        novKrog = True
+        print('stevilo skupin zaznav',len(cylinder_array))
+        for cylinder in cylinder_array:
+            if(euclidian(tocka, cylinder.centroid) < thresh):
+                novKrog = False
 
-    dodan = False
-    novKrog = True
-    print('stevilo skupin zaznav',len(cylinder_array))
-    for cylinder in cylinder_array:
-        if(euclidian(tocka, cylinder.centroid) < thresh):
-            novKrog = False
+        if (novKrog):
+            tmp = C_Cilinder()
+            tmp.add(tocka)
+            cylinder_array.append(tmp)
 
-    if (novKrog):
-        tmp = C_Cilinder()
-        tmp.add(tocka)
-        cylinder_array.append(tmp)
+            pose_robot = get_robot_pose(tocka.header.stamp)
+            if(pose_robot.position.x != None or pose_robot.position.y != None or pose_robot.position.z != None):
+                pose = Pose()
+                pose.position.x = tocka.pose.position.x
+                pose.position.y = tocka.pose.position.y
+                pose.position.z = tocka.pose.position.z
+                pose.orientation.w = 1
 
-        pose_robot = get_robot_pose(tocka.header.stamp)
+                pose_goal = get_goal(pose_robot, pose)
+                # nastavi se barva na orientation.w
+                if(pose_goal.position.x != None or pose_goal.position.y != None or pose_goal.position.z != None):
+                    pose_barva = 0
 
-        pose = Pose()
-        pose.position.x = tocka.pose.position.x
-        pose.position.y = tocka.pose.position.y
-        pose.position.z = tocka.pose.position.z
-        pose.orientation.w = 1
+                    if(data.color.r > 0):
+                        if(data.color.g > 0):
+                            pose_barva = 3
+                        else:
+                            pose_barva = 0
+                    else:
+                        if(data.color.g > 0):
+                            pose_barva = 1
+                        else:
+                            pose_barva = 2
 
-        pose_goal = get_goal(pose_robot, pose)
-        # nastavi se barva na orientation.w
-        
-        pose_barva = 0
+                    pose_goal.orientation.w = pose_barva
 
-        if(data.color.r > 0):
-            if(data.color.g > 0):
-                pose_barva = 3
-            else:
-                pose_barva = 0
-        else:
-            if(data.color.g > 0):
-                pose_barva = 1
-            else:
-                pose_barva = 2
+                    markers2.publish(pose_goal)
+                    
+                    marker = Marker()
+                    marker.header.stamp = rospy.Time(0)
+                    marker.header.frame_id = "map"
+                    marker.pose = pose
+                    marker.type = Marker.CYLINDER
+                    marker.action = Marker.ADD
+                    marker.frame_locked = False
+                    marker.id = marker_num
+                    marker_num += 1
+                    marker.scale = Vector3(0.1, 0.1, 0.1)
+                    marker.color = ColorRGBA(rdeca,zelena,modra, 1)
+                    marker_array.markers.append(marker)
+                    array_pub.publish(marker_array)
 
-        pose_goal.orientation.w = pose_barva
-
-        markers2.publish(pose_goal)
-        
-        marker = Marker()
-        marker.header.stamp = rospy.Time(0)
-        marker.header.frame_id = "map"
-        marker.pose = pose
-        marker.type = Marker.CYLINDER
-        marker.action = Marker.ADD
-        marker.frame_locked = False
-        marker.id = marker_num
-        marker_num += 1
-        marker.scale = Vector3(0.1, 0.1, 0.1)
-        marker.color = ColorRGBA(rdeca,zelena,modra, 1)
-        marker_array.markers.append(marker)
-        array_pub.publish(marker_array)
-
-        marker.pose = pose_goal
-        marker.id = marker_num
-        marker_num += 1
-        marker_array.markers.append(marker)
-        marker.color = ColorRGBA(0,255,0, 1)
-        array_pub.publish(marker_array)
-        
-        print("\ndodan marker in pozicija goal-a\n")
+                    marker.pose = pose_goal
+                    marker.id = marker_num
+                    marker_num += 1
+                    marker_array.markers.append(marker)
+                    marker.color = ColorRGBA(0,255,0, 1)
+                    array_pub.publish(marker_array)
+                    
+                    print("\ndodan marker in pozicija goal-a\n")
 
 
 if __name__ == "__main__":

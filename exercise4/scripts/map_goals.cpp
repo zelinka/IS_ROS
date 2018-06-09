@@ -115,13 +115,15 @@ void mouseCallback(int event, int x, int y, int, void* data) {
 
 void cylinderRecieved(const geometry_msgs::Pose msg){
     //ROS_INFO("V MARKERS RECIEVED CALLBACKU");
-    array_cylinder[array_counter_cylinder][0] = msg.position.x;
-    array_cylinder[array_counter_cylinder][1] = msg.position.y;
-    array_cylinder[array_counter_cylinder][2] = msg.position.z; //kot
-    array_cylinder[array_counter_cylinder][3] = msg.orientation.w; //barva 0 R, 1 G, 2 B, 3 Y 
-    ROS_INFO("x=%f y=%f ------- array", array_cylinder[array_counter_cylinder][0], array_cylinder[array_counter_cylinder][1]);
-    ROS_INFO("x=%f y=%f ------- message", msg.position.x, msg.position.y);
-    array_counter_cylinder++;
+    if( !isnan(msg.position.x) || !isnan(msg.position.y) || !isnan(msg.position.z) ) {
+        array_cylinder[array_counter_cylinder][0] = msg.position.x;
+        array_cylinder[array_counter_cylinder][1] = msg.position.y;
+        array_cylinder[array_counter_cylinder][2] = msg.position.z; //kot
+        array_cylinder[array_counter_cylinder][3] = msg.orientation.w; //barva 0 R, 1 G, 2 B, 3 Y 
+        ROS_INFO("x=%f y=%f ------- array", array_cylinder[array_counter_cylinder][0], array_cylinder[array_counter_cylinder][1]);
+        ROS_INFO("x=%f y=%f ------- message", msg.position.x, msg.position.y);
+        array_counter_cylinder++;
+    }
 }
 
 void ringRecieved(const geometry_msgs::Pose msg){
@@ -236,8 +238,8 @@ void premikanje() {
 
 
     // i < dolzina int koordinate[]
-    int i = 0;
-    int num_of_destinations = 25;
+    int i = 17;
+    int num_of_destinations = 18;
     //float pi = 3.14159265358979323846;
     ROS_INFO("premikanje");
     while(i < num_of_destinations) {
@@ -292,7 +294,9 @@ void premikanje() {
             //ROS_INFO("The base failed to move");
         }
         i++;
-        if (i >= num_of_goals){
+        if (i >= num_of_destinations){
+            ROS_INFO("Killing /cylinder_marker_clustering and /cylinder_segmentation and /image_converter");
+            system("rosnode kill /cylinder_marker_clustering");
             system("rosnode kill /cylinder_segmentation");
             system("rosnode kill /image_converter");
         }
