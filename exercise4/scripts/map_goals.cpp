@@ -22,12 +22,15 @@
 #include <geometry_msgs/Pose.h>
 #include <math.h>
 #include <std_msgs/Int8.h>
+#include <string>
 
 # define PI 3.14159265358979323846 /* pi */
 
 using namespace std;
 using namespace cv;
 
+
+string faza;
 Mat cv_map;
 float map_resolution = 0;
 int size_y;
@@ -45,11 +48,37 @@ ros::Subscriber array_sub_r;
 ros::Publisher goal_pub;
 ros::Publisher homo_pub;
 ros::Subscriber map_sub;
+ros::Subscriber reg_sub;
 
 ros::Publisher arm_pub;
 
-
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+
+int pozicije_roke [3][7] = {
+    {0, 0, 1, 2, 9, 10, 3},
+    {3, 3, 4, 5, 9, 10, 6},
+    {6, 6, 7, 8, 9, 10, 0}
+};
+
+int which = 0;
+
+void kovanec(){
+    std_msgs::Int8 msg;
+
+    for(int i = 0; i < 7; i++){
+        msg.data = pozicije_roke[which][i];
+        arm_pub.publish(msg);
+        if (i < 3)
+            ros::Duration(1).sleep();
+        else
+            ros::Duration(1.5).sleep();
+    }
+
+    which++;
+
+    if(which>3)
+        which = 0;
+}
 
 void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
     size_x = msg_map->info.width;
@@ -76,9 +105,6 @@ void mapCallback(const nav_msgs::OccupancyGridConstPtr& msg_map) {
     int size_y_rev = size_y-1;
 
    for (int y = size_y_rev; y >= 0; --y) {
-
-//        int idx_map_y = size_x * (size_y -y);
-  // for (int y = 0; y < size_y; ++y) {
 
         int idx_map_y = size_x * (size_y -y);
         //int idx_map_y = size_x * y;
@@ -126,6 +152,87 @@ void cylinderRecieved(const geometry_msgs::Pose msg){
     }
 }
 
+void regression_result_callback(const geometry_msgs::Pose msg){
+    //ros::init(argc, argv, "one_meter");
+    int len = msg.position.x;
+    int reg_goals[len];
+
+    
+    if (len >= 1)
+        reg_goals[0] = static_cast<int>(msg.orientation.x);
+    if (len >= 2)
+        reg_goals[1] = static_cast<int>(msg.orientation.y);
+    if (len >= 3)
+        reg_goals[2] = static_cast<int>(msg.orientation.z);
+    if (len >= 4)
+        reg_goals[3] = static_cast<int>(msg.orientation.w);
+
+    ROS_INFO("Barve po vrsti: %d %d %d", reg_goals[0], reg_goals[1], reg_goals[2]);
+
+	MoveBaseClient ac("move_base", true);
+
+
+    while(!ac.waitForServer(ros::Duration(5.0))){
+        //ROS_INFO("Waiting for the move_base action server to come up");
+    }
+
+    // i < dolzina int koordinate[]
+    for(int i = 0;i < len && i < 3;i++) {
+        
+        int barva = reg_goals[i];
+        ROS_INFO("grem pozdravljat cilindre %d od %d", i, array_counter_cylinder);
+		
+        for(int j = 0;j < array_counter_cylinder;j++){
+
+            if(barva == array_cylinder[j][3]){
+
+                float x = array_cylinder[j][0];
+                float y = array_cylinder[j][1];
+                float kot = array_cylinder[j][2];
+		
+                ROS_INFO("pozdravljam iz map_goals x = %f", x);
+                ROS_INFO("pozdravljam iz map_goals y = %f", y);
+                ROS_INFO("pozdravljam iz map_goals barva = %f", array_cylinder[i][3]);
+
+                move_base_msgs::MoveBaseGoal goal;
+                goal.target_pose.header.stamp = ros::Time::now();
+                goal.target_pose.header.frame_id = "map";
+                goal.target_pose.pose.orientation.x = 0;
+                goal.target_pose.pose.orientation.y = 0;
+                goal.target_pose.pose.orientation.z = 1*sin(kot/2);
+                goal.target_pose.pose.orientation.w = cos(kot/2);
+                goal.target_pose.pose.position.x = x;
+                goal.target_pose.pose.position.y = y;
+
+                
+                ROS_INFO("grem pozdravljat");
+                ac.sendGoal(goal);
+                
+                ac.waitForResult();
+
+
+                if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+                        //ROS_INFO("Hooray, the base moved");
+                        system("rosrun sound_play say.py 'hello cyllinder'");
+                        kovanec();
+                        
+                }
+                else{
+                    system("rosrun sound_play say.py 'failed to reach goal'");
+                    //i++;
+                    //ROS_INFO("The base failed to move");
+                }
+                
+                if (i >= array_counter_cylinder && array_counter_cylinder != 0){
+                    system("rosnode kill /map_goals");
+                }
+                break;
+            }
+        }
+	}
+}
+
+
 void ringRecieved(const geometry_msgs::Pose msg){
     //ROS_INFO("V MARKERS RECIEVED CALLBACKU");
     array_ring[array_counter_ring][0] = msg.position.x;
@@ -134,32 +241,6 @@ void ringRecieved(const geometry_msgs::Pose msg){
     ROS_INFO("x=%f y=%f ------- array", array_ring[array_counter_ring][0], array_ring[array_counter_ring][1]);
     ROS_INFO("x=%f y=%f ------- message", msg.position.x, msg.position.y);
     array_counter_ring++;
-}
-
-int pozicije_roke [3][7] = {
-    {0, 0, 1, 2, 9, 10, 3},
-    {3, 3, 4, 5, 9, 10, 6},
-    {6, 6, 7, 8, 9, 10, 0}
-};
-
-int which = 0;
-
-void kovanec(){
-    std_msgs::Int8 msg;
-
-    for(int i = 0; i < 7; i++){
-        msg.data = pozicije_roke[which][i];
-        arm_pub.publish(msg);
-        if (i < 3)
-            ros::Duration(1).sleep();
-        else
-            ros::Duration(1.5).sleep();
-    }
-
-    which++;
-
-    if(which>3)
-        which = 0;
 }
 
 void premikanje() {
@@ -200,7 +281,8 @@ void premikanje() {
 		{27,219, 180},
         {25,196, -90},
         {22,181, 0},
-        {40,168, -120},
+        {40,168, -120},rdinate[]
+    for(int i = 0;
         {60,165, 90},
         {60,165, 160},
         {60,165, -130}
@@ -295,10 +377,12 @@ void premikanje() {
         }
         i++;
         if (i >= num_of_destinations){
+            
             ROS_INFO("Killing /cylinder_marker_clustering and /cylinder_segmentation and /image_converter");
             system("rosnode kill /cylinder_marker_clustering");
             system("rosnode kill /cylinder_segmentation");
             system("rosnode kill /image_converter");
+            
         }
     }
     
@@ -306,6 +390,7 @@ void premikanje() {
 
 	return;
 }
+
 void pozdravljanje_cylinder() {
     //ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
@@ -364,6 +449,7 @@ void pozdravljanje_cylinder() {
 	return;
 }
 
+
 void pozdravljanje_ring() {
     //ros::init(argc, argv, "one_meter");
 	MoveBaseClient ac("move_base", true);
@@ -405,7 +491,7 @@ void pozdravljanje_ring() {
                 //ROS_INFO("Hooray, the base moved");
                 system("rosrun sound_play say.py 'my precious'");
                 std_msgs::String msg;
-                msg.data = "";
+                msg.data = "picture";
                 homo_pub.publish(msg);
                 ROS_INFO("poslano homo_pub");
                 //i++;
@@ -417,9 +503,15 @@ void pozdravljanje_ring() {
         }
         i++;
         if (i >= array_counter_ring && array_counter_ring != 0){
-            
+            ros::Duration(1).sleep();
+            std_msgs::String nextGoal;
+            nextGoal.data = "next goal";
+            homo_pub.publish(nextGoal);
+            faza = "regresija";
+
         }
 	}
+
 
 	return;
 }
@@ -443,26 +535,37 @@ int main(int argc, char** argv) {
     arm_pub = n3.advertise<std_msgs::Int8>("set_manipulator_position", 10);
     ros::NodeHandle n5;
     homo_pub = n5.advertise<std_msgs::String>("/homography_image_2", 10);
+    ros::NodeHandle n6;
+    reg_sub = n6.subscribe<geometry_msgs::Pose>("/regression_result",10, regression_result_callback);
     
     //namedWindow("Map");
 
     //setMouseCallback("Map", mouseCallback, NULL);
-
+    faza = "pregledovanje";
 
     while(ros::ok()) {
 
         //if (!cv_map.empty()) imshow("Map", cv_map);
-		
-		premikanje();
-        ros::spinOnce();
-        ROS_INFO("ring counter %d", array_counter_ring);
-        ROS_INFO("cylinder counter %d", array_counter_cylinder);
-        //ROS_INFO("KONCAL Z PREISKOVANJEM> POZDRAVLJANJE");
-        pozdravljanje_ring();
-        pozdravljanje_cylinder();
+		if(faza.compare("pregledovanje") == 0) {
+            premikanje();
+            ros::spinOnce();
+            ROS_INFO("ring counter %d", array_counter_ring);
+            ROS_INFO("cylinder counter %d", array_counter_cylinder);
+            //ROS_INFO("KONCAL Z PREISKOVANJEM> POZDRAVLJANJE");
+            pozdravljanje_ring();
+        } else {
+            
+            ROS_INFO("poslano homo_pub next goal, cakam na callback");
+            ros::Duration(1).sleep();
+            ros::spinOnce();
+        }
+
+        //pozdravljanje_cylinder();
         
         //break;
     }
+
     return 0;
 
 }
+

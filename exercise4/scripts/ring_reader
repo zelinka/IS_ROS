@@ -17,7 +17,17 @@ from cv_bridge import CvBridge, CvBridgeError
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 from std_msgs.msg import String
+from std_msgs.msg import Int32MultiArray
 from RingReader_local import *
+from cceo_invest import *
+
+i = Investor()
+
+colors = ["red", "green", "blue","yellow"]
+
+for c in colors:
+    temp = Cceo(c)
+    i.addCceo(temp)
 
 dictm = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 
@@ -62,177 +72,218 @@ def map_goals_callback(data):
     #self.time_rec = data.header.stamp
     #print('Iam here!')
     #rospy.loginfo(self.counter)
-    data = rospy.wait_for_message('/camera/rgb/image_color', Image)
-    try:
-        cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
-            
-    except CvBridgeError as e:
-        print(e)
+    if(data = "picture"):
+        data = rospy.wait_for_message('/camera/rgb/image_color', Image)
+        try:
+            cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
+                
+        except CvBridgeError as e:
+            print(e)
 
-    # Set the dimensions of the image
-    dims = cv_image.shape
-    #cv_image = cv_image[60:360, 0:dims[1]]
-    #print(self.dims)
-    #gledamo y = 50 do 320
+        # Set the dimensions of the image
+        dims = cv_image.shape
+        #cv_image = cv_image[60:360, 0:dims[1]]
+        #print(self.dims)
+        #gledamo y = 50 do 320
 
-    # Tranform image to gayscale
-    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+        # Tranform image to gayscale
+        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 
-    # Do histogram equlization
-    img = cv2.equalizeHist(gray)
+        # Do histogram equlization
+        img = cv2.equalizeHist(gray)
 
-    # Binarize the image
-    #ret, thresh = cv2.threshol  #     print cnt.shape
-    #print(cnt)
-
-    # Binarize the image
-    #ret, thresh = cv2.threshold(img, 60, 255, 0)
-    thresh = cv2.Canny(img,100,200)
-    #cv2.imshow("Binary window", thresh)
-
-
-
-    # Extract contours
-    contours_, contours, hierarchy = cv2.findContours(thresh, 2, 2)
-
-    # Example how to draw the contours
-    #cv2.drawContours(cv_image, contours, -1, (0, 0, 255), 3)
-
-    # Fit elipses to all extracted contours
-    elps = []
-    for cnt in contours:
-        #     print cnt
-        #     print cnt.shape
+        # Binarize the image
+        #ret, thresh = cv2.threshol  #     print cnt.shape
         #print(cnt)
-        if cnt.shape[0] >= 60:
-            ellipse = cv2.fitEllipse(cnt)
 
-            elps.append(ellipse)
-            #cv2.drawContours(cv_image, cnt, -1, (255, 0, 0), 3)
-            #cv2.ellipse(cv_image, ellipse, (255, 0, 0), 2)
-
-
-    # Find two elipses with same centers
-    candidates = []
-    for n in range(len(elps)):
-        for m in range(n + 1, len(elps)):
-            e1 = elps[n]
-            e2 = elps[m]
+        # Binarize the image
+        #ret, thresh = cv2.threshold(img, 60, 255, 0)
+        thresh = cv2.Canny(img,100,200)
+        #cv2.imshow("Binary window", thresh)
 
 
 
-            dist = np.sqrt(((e1[0][0] - e2[0][0]) ** 2 + (e1[0][1] - e2[0][1]) ** 2))
-            #             print dist
-            if dist < 5 and ratio(e1,e2):
-                candidates.append((e1,e2))
+        # Extract contours
+        contours_, contours, hierarchy = cv2.findContours(thresh, 2, 2)
 
-    try:
-        depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
-    except Exception as e:
-        print(e)
+        # Example how to draw the contours
+        #cv2.drawContours(cv_image, contours, -1, (0, 0, 255), 3)
 
-    #depth_img = depth_img[60:330, 0:self.dims[1]]
+        # Fit elipses to all extracted contours
+        elps = []
+        for cnt in contours:
+            #     print cnt
+            #     print cnt.shape
+            #print(cnt)
+            if cnt.shape[0] >= 60:
+                ellipse = cv2.fitEllipse(cnt)
 
-    # Extract the depth from the depth image
-    for c in candidates:
-
-        e1 = c[0]
-        e2 = c[1]
+                elps.append(ellipse)
+                #cv2.drawContours(cv_image, cnt, -1, (255, 0, 0), 3)
+                #cv2.ellipse(cv_image, ellipse, (255, 0, 0), 2)
 
 
-        #cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
-        #cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
+        # Find two elipses with same centers
+        candidates = []
+        for n in range(len(elps)):
+            for m in range(n + 1, len(elps)):
+                e1 = elps[n]
+                e2 = elps[m]
 
-        size = (e1[1][0]+e1[1][1])/2
-        center = (e1[0][1], e1[0][0])
 
-        x1 = int(center[0] - size / 2)
-        x2 = int(center[0] + size / 2)
-        x_min = x1 if x1>0 else 0
-        x_max = x2 if x2<cv_image.shape[0] else cv_image.shape[0]
 
-        y1 = int(center[1] - size / 2)
-        y2 = int(center[1] + size / 2)
-        y_min = y1 if y1 > 0 else 0
-        y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
+                dist = np.sqrt(((e1[0][0] - e2[0][0]) ** 2 + (e1[0][1] - e2[0][1]) ** 2))
+                #             print dist
+                if dist < 5 and ratio(e1,e2):
+                    candidates.append((e1,e2))
 
-    if len(candidates)>1:
-        print('Ring detected! (hopefully)')
-        corners, ids, _ = cv2.aruco.detectMarkers(cv_image,dictm)
-        
-        # Increase proportionally if you want a larger image
-        image_size=(351,248,3)
-        marker_side=50
+        try:
+            depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
+        except Exception as e:
+            print(e)
 
-        img_out = np.zeros(image_size, np.uint8)
-        out_pts = np.array([[marker_side/2,img_out.shape[0]-marker_side/2],
-                            [img_out.shape[1]-marker_side/2,img_out.shape[0]-marker_side/2],
-                            [marker_side/2,marker_side/2],
-                            [img_out.shape[1]-marker_side/2,marker_side/2]])
+        #depth_img = depth_img[60:330, 0:self.dims[1]]
 
-        src_points = np.zeros((4,2))
-        cens_mars = np.zeros((4,2))
+        # Extract the depth from the depth image
+        for c in candidates:
 
-        if not ids is None:
-            if len(ids)==4:
-                print('4 Markers detected')
-        
-                for idx in ids:
-                    # Calculate the center point of all markers
-                    cors = np.squeeze(corners[idx[0]-1])
-                    cen_mar = np.mean(cors,axis=0)
-                    cens_mars[idx[0]-1]=cen_mar
-                    cen_point = np.mean(cens_mars,axis=0)
+            e1 = c[0]
+            e2 = c[1]
+
+
+            #cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
+            #cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
+
+            size = (e1[1][0]+e1[1][1])/2
+            center = (e1[0][1], e1[0][0])
+
+            x1 = int(center[0] - size / 2)
+            x2 = int(center[0] + size / 2)
+            x_min = x1 if x1>0 else 0
+            x_max = x2 if x2<cv_image.shape[0] else cv_image.shape[0]
+
+            y1 = int(center[1] - size / 2)
+            y2 = int(center[1] + size / 2)
+            y_min = y1 if y1 > 0 else 0
+            y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
+
+        if len(candidates)>1:
+            print('Ring detected! (hopefully)')
+            corners, ids, _ = cv2.aruco.detectMarkers(cv_image,dictm)
             
-                for coords in cens_mars:
-                    #  Map the correct source points
-                    if coords[0]<cen_point[0] and coords[1]<cen_point[1]:
-                        src_points[2]=coords
-                    elif coords[0]<cen_point[0] and coords[1]>cen_point[1]:
-                        src_points[0]=coords
-                    elif coords[0]>cen_point[0] and coords[1]<cen_point[1]:
-                        src_points[3]=coords
-                    else:
-                        src_points[1]=coords
+            # Increase proportionally if you want a larger image
+            image_size=(351,248,3)
+            marker_side=50
 
-                h, status = cv2.findHomography(src_points, out_pts)
-                img_out = cv2.warpPerspective(cv_image, h, (img_out.shape[1],img_out.shape[0]))
+            img_out = np.zeros(image_size, np.uint8)
+            out_pts = np.array([[marker_side/2,img_out.shape[0]-marker_side/2],
+                                [img_out.shape[1]-marker_side/2,img_out.shape[0]-marker_side/2],
+                                [marker_side/2,marker_side/2],
+                                [img_out.shape[1]-marker_side/2,marker_side/2]])
+
+            src_points = np.zeros((4,2))
+            cens_mars = np.zeromarker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
+
+            if not ids is None:marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
+                if len(ids)==4:marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
+                    print('4 Markers detected')
+            
+                    for idx in ids:
+                        # Calculate the center point of all markers
+                        cors = np.squeeze(corners[idx[0]-1])
+                        cen_mar = np.mean(cors,axis=0)
+                        cens_mars[idx[0]-1]=cen_mar
+                        cen_point = np.mean(cens_mars,axis=0)
                 
-                #cv2.imshow('Warped image',img_out)
-                #cv2.waitKey(1)
+                    for coords in cens_mars:
+                        #  Map the correct source points
+                        if coords[0]<cen_point[0] and coords[1]<cen_point[1]:
+                            src_points[2]=coords
+                        elif coords[0]<cen_point[0] and coords[1]>cen_point[1]:
+                            src_points[0]=coords
+                        elif coords[0]>cen_point[0] and coords[1]<cen_point[1]:
+                            src_points[3]=coords
+                        else:
+                            src_points[1]=coords
 
-                img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
+                    h, status = cv2.findHomography(src_points, out_pts)
+                    img_out = cv2.warpPerspective(cv_image, h, (img_out.shape[1],img_out.shape[0]))
+                    
+                    #cv2.imshow('Warped image',img_out)
+                    #cv2.waitKey(1)
 
-                print(extract_data(img_out))
-                print(extract_color(img_out))
+                    img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
 
-                
+                    read_data = extract_data(img_out))
+                    read_color = extract_color(img_out))
+                    if(read_data != None):
+                        if(len(read_data > 1)):
+                            i.addSlope(read_color,read_data)
+                        else:
+                            for i in range(0,len(read_data),2)):
+                                dan = read_data[i]
+                                vrednost = read_data[i+1]
+                                i.addReading((color,dan,vrednost))
+
+                    
+                else:
+                    print('The number of markers is not ok:',len(ids))
             else:
-                print('The number of markers is not ok:',len(ids))
+                print('No markers found')
+        
+        elif len(candidates)==0:
+            print('No contours detected')
         else:
-            print('No markers found')
-    
-    elif len(candidates)==0:
-        print('No contours detected')
-    else:
-        print('Some contours detected, not sure if it is a ring',len(candidates))
-        for elps in candidates:
-            e1 = elps[0]
-            e2 = elps[0]
-            cv2.ellipse(cv_image,e1,(0,255,0),3)
-            cv2.ellipse(cv_image,e2,(0,255,0),3)
+            print('Some contours detected, not sure if it is a ring',len(candidates))
+            for elps in candidates:
+                e1 = elps[0]
+                e2 = elps[0]
+                cv2.ellipse(cv_image,e1,(0,255,0),3)
+                cv2.ellipse(cv_image,e2,(0,255,0),3)
 
-    #cv2.imshow('Image',cv_image)
-    #cv2.waitKey(1)
+        #cv2.imshow('Image',cv_image)
+        #cv2.waitKey(1)
+    elif(data = "next goal"):
+        goals = []
+        pose = Pose()
+        while True:
+        try:
+            next_goal = i.getNextBank()
+            if next_goal = "red":
+                next_goal = 0
+            elif next_goal = "green":
+                next_goal = 1
+            elif next_goal = "blue":
+                next_goal = 2
+            elif next_goal = "yellow":
+                next_goal = 3
+            goals.append(next_goal)
+        except DataError:
+            break
+
+        pose.position.x = len(goals)
+
+        if len(goals) >= 1:
+            pose.orientation.x = goals[0]
+        if len(goals) >= 2:
+            pose.orientation.y = goals[1]
+        if len(goals) >= 3:
+            pose.orientation.z = goals[2]
+        if len(goals) >= 4:
+            pose.orientation.w = goals[3]
+
+        marker_pub.publsh(pose)
 
 
 if __name__ == '__main__':
     print("init")
     rospy.init_node('ring_reader', anonymous=False)
     marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
+    marker_pub = rospy.Publisher("regression_result", Pose, map_goals_callback)
 
     try:
         rospy.spin()
+    
     except KeyboardInterrupt:
         print("Shutting down")
 
