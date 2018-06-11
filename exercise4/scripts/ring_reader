@@ -29,47 +29,194 @@ for c in colors:
     temp = Cceo(c)
     investor.addCceo(temp)
     #default value
-    investor.addReading(c, 0, 0)
+    #investor.addReading(c, 0, 0)
     #
 
 dictm = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-
+tf_buf = tf2_ros.Buffer()
+tf_listener = tf2_ros.TransformListener(tf_buf)
 bridge = CvBridge()
+marker_num = 0
+marker_array = MarkerArray()
+marker_array_cylinder = MarkerArray()
+
+def check_color(c1,c2):
+	if c1.r == c2.r:
+		if c1.g == c2.g:
+			if c1.b == c2.b:
+				return True
+	return False
+
+def post_numbers_on_cylinders():
+    banke = investor.banks
+    global marker_array_cylinder
+    ind = 0
+    text_array = MarkerArray()
+    print("posting numbers on cylinders")
+    print("len(marker_array_cylinder.markers)",len(marker_array_cylinder.markers))
+    print("")
+
+    for marker_c in marker_array_cylinder.markers:
+        print("cilinder")
+        for banka in banke:
+            (red,green,blue) = get_color(banka.color)
+            print("rgb marker", marker_c.color.r,marker_c.color.g,marker_c.color.b)
+            print("rgb banka",red,green,blue)
+            print("")
+            if check_color(marker_c.color,ColorRGBA(red,green,blue,1)): 
+                vrednost = banka.calculateValue()
+                pose = Pose()
+                pose.position.x = marker_c.pose.position.x
+                pose.position.y = marker_c.pose.position.y
+                pose.position.z = marker_c.pose.position.z = 0.4
+                
+                marker = Marker()
+                marker.id = ind
+                marker.header.stamp = marker_c.header.stamp
+                marker.header.frame_id = marker_c.header.frame_id
+                marker.pose = pose
+                marker.type = Marker.TEXT_VIEW_FACING
+                marker.text = str(vrednost)[0:3]
+                marker.action = Marker.ADD
+                marker.frame_locked = False
+                marker.lifetime = rospy.Duration.from_sec(1000)
+                marker.id = ind
+                marker.scale = Vector3(0.1, 0.1, 0.1)
+                marker.color = ColorRGBA(0, 0, 0, 1)
+                text_array.markers.append(marker)
+                text_pub.publish(text_array)
+                ind += 1
+                print("posted text marker")
+                print("")
+                break
+
+
+def markers_check(marker):
+    print(marker.pose)
+    print(marker.color)
+    print("------------------------------")
+
+def get_color(color):
+    if color == "red":
+        return (1,0,0)
+    elif color == "green":
+        return (0,1,0)
+    elif color == "blue":
+        return (0,0,1)
+    elif color == "yellow":
+        return (1,1,0)
+
+def get_pose(e,dist,color,dims):
+        # Calculate the position of the detected ellipse
+        global marker_num
+        global markers_pub_color
+        global marker_array
+        k_f = 525 # kinect focal length in pixels
+ 
+        elipse_x = dims[1] / 2 - e[0][0]
+        elipse_y = dims[0] / 2 - e[0][1]
+        
+        angle_to_target = np.arctan2(elipse_x,k_f)
+
+        #print("Razdalja do kroga: ",dist)
+
+        # Get the angles in the base_link relative coordinate system
+        x,y = dist*np.cos(angle_to_target), dist*np.sin(angle_to_target)
+ 
+        # Define a stamped message for transformation
+        point_s = PointStamped()
+        point_s.point.x = x
+        point_s.point.y = y
+        point_s.point.z = 0.3
+        point_s.header.frame_id = "base_link"
+        point_s.header.stamp = rospy.Time(0)
+
+        while(True):
+            try:
+                point_world = tf_buf.transform(point_s,"map")
+                #print("while")
+            except:
+                #print("error")
+                continue
+            break
+        pose = Pose()
+
+        pose.position.x = point_world.point.x
+        pose.position.y = point_world.point.y
+        pose.position.z = point_world.point.z
+
+        (red,green,blue) = get_color(color)
+
+        # Create a marker used for visualization of circle detection
+        marker_num += 1
+        marker = Marker()
+        marker.header.stamp = point_world.header.stamp
+        marker.header.frame_id = point_world.header.frame_id
+        marker.pose = pose
+        marker.type = Marker.CUBE
+        marker.action = Marker.ADD
+        marker.frame_locked = False
+        marker.lifetime = rospy.Duration.from_sec(1000)
+        marker.id = marker_num
+        marker.scale = Vector3(0.1, 0.1, 0.1)
+        marker.color = ColorRGBA(red, green, blue, 1)
+        marker_array.markers.append(marker)
+        markers_pub_color.publish(marker_array)
+    
+    
+
 def ratio(e1,e2):
 
-        (x1,y1), (Ma1, ma1), angle1 = e1 
-        (x2,y2), (Ma2, ma2), angle2 = e2 
+    (x1,y1), (Ma1, ma1), angle1 = e1 
+    (x2,y2), (Ma2, ma2), angle2 = e2 
 
-        a1 = ma1/2
-        a2 = ma2/2
-        r1 = 0
+    a1 = ma1/2
+    a2 = ma2/2
+    r1 = 0
 
-        b1 = Ma1/2
-        b2 = Ma2/2
-        r2 = 0
+    b1 = Ma1/2
+    b2 = Ma2/2
+    r2 = 0
 
-        if b1 == 0 or b2 == 0 or a1 == 0 or a2 == 0:
-            return False
-        size = (e1[1][0]+e1[1][1])/2
-        center = (e1[0][1], e1[0][0])
-       
-        r2 = 0
+    r3 = a1/b1
 
-        if b1 < b2:
-            
-            r2 = b2/b1
-        else:
-            r2 = b1/b2
-        
-        if a1 < a2:
-            r1 = a2/a1
-        else:
-            r1 = a1/a2
-        #print("r", r)
-        if r1 > 1.2 and r1 < 1.5:
-            if r2 > 1.2 and r2 < 1.5:
-                return True
+    if b1 == 0 or b2 == 0 or a1 == 0 or a2 == 0:
         return False
+    size = (e1[1][0]+e1[1][1])/2
+    center = (e1[0][1], e1[0][0])
+    
+    r2 = 0
+
+    manjsi_a = a1
+    vecji_a = a2
+    manjsi_b = b1
+    vecji_b = b2
+
+    if a1 > a2:
+        manjsi_a = a2
+        vecji_a = a1
+
+    if b1 > b2:
+        manjsi_b = b2
+        vecji_b = b1
+
+    r1= vecji_a/manjsi_a
+    r2 = vecji_b/manjsi_b
+
+    #print("a: ", vecji_a)
+    print("b: ", vecji_b)
+    print("r1 r2 r3 ", r1," ", r2 ," ", r3)
+
+    if 1.2 < r1 < 1.5:
+        if 1.2 < r2 < 1.5:
+            if 0.9 < r3 < 1.2:
+                return True
+    return False
+
+def cylinder_marker_callback(data):
+    global marker_array_cylinder
+    markers_check(data)
+    marker_array_cylinder.markers.append(data)
 
 def map_goals_callback(data):
     #self.time_rec = data.header.stamp
@@ -79,12 +226,18 @@ def map_goals_callback(data):
     print(data.data)
     if data.data == "picture":
 
-        data = rospy.wait_for_message('/camera/rgb/image_color', Image)
+        #data = rospy.wait_for_message('/camera/rgb/image_color', Image)
         try:
+            data = rospy.wait_for_message('/camera/rgb/image_color', Image)
             cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
                 
         except CvBridgeError as e:
             print(e)
+        try:
+            depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
+        except Exception as e:
+            print(e)
+
 
         # Set the dimensions of the image
         dims = cv_image.shape
@@ -106,7 +259,6 @@ def map_goals_callback(data):
         #ret, thresh = cv2.threshold(img, 60, 255, 0)
         thresh = cv2.Canny(img,100,200)
         #cv2.imshow("Binary window", thresh)
-
 
 
         # Extract contours
@@ -143,15 +295,11 @@ def map_goals_callback(data):
                 if dist < 5 and ratio(e1,e2):
                     candidates.append((e1,e2))
 
-        try:
-            depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
-        except Exception as e:
-            print(e)
-
         #depth_img = depth_img[60:330, 0:self.dims[1]]
 
         # Extract the depth from the depth image
-        for c in candidates:
+        if len(candidates) >= 1:
+            c = candidates[0]
 
             e1 = c[0]
             e2 = c[1]
@@ -173,84 +321,95 @@ def map_goals_callback(data):
             y_min = y1 if y1 > 0 else 0
             y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
 
+            depth_image = bridge.imgmsg_to_cv2(depth_img, "16UC1")
 
-        if len(candidates)>1:
-            print('Ring detected! (hopefully)')
-            corners, ids, _ = cv2.aruco.detectMarkers(cv_image,dictm)
-            
-            # Increase proportionally if you want a larger image
-            image_size=(351,248,3)
-            marker_side=50
+            #depth_image = depth_image[60:-60, 80:-80]
+            #get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0,color,dims)
 
-            img_out = np.zeros(image_size, np.uint8)
-            out_pts = np.array([[marker_side/2,img_out.shape[0]-marker_side/2],
-                                [img_out.shape[1]-marker_side/2,img_out.shape[0]-marker_side/2],
-                                [marker_side/2,marker_side/2],
-                                [img_out.shape[1]-marker_side/2,marker_side/2]])
-
-            src_points = np.zeros((4,2))
-            cens_mars = np.zeros((4,2))
-
-            if not ids is None:
-                if len(ids)==4:
-                    print('4 Markers detected')
-            
-                    for idx in ids:
-                        # Calculate the center point of all markers
-                        cors = np.squeeze(corners[idx[0]-1])
-                        cen_mar = np.mean(cors,axis=0)
-                        cens_mars[idx[0]-1]=cen_mar
-                        cen_point = np.mean(cens_mars,axis=0)
+        uspesno = False
+        try_limit = 0
+        while(not uspesno and try_limit < 3):
+            if len(candidates)>1:
+                print('Ring detected! (hopefully)')
+                corners, ids, _ = cv2.aruco.detectMarkers(cv_image,dictm)
                 
-                    for coords in cens_mars:
-                        #  Map the correct source points
-                        if coords[0]<cen_point[0] and coords[1]<cen_point[1]:
-                            src_points[2]=coords
-                        elif coords[0]<cen_point[0] and coords[1]>cen_point[1]:
-                            src_points[0]=coords
-                        elif coords[0]>cen_point[0] and coords[1]<cen_point[1]:
-                            src_points[3]=coords
-                        else:
-                            src_points[1]=coords
+                # Increase proportionally if you want a larger image
+                image_size=(351,248,3)
+                marker_side=50
 
-                    h, status = cv2.findHomography(src_points, out_pts)
-                    img_out = cv2.warpPerspective(cv_image, h, (img_out.shape[1],img_out.shape[0]))
-                    
-                    #cv2.imshow('Warped image',img_out)
-                    #cv2.waitKey(1)
+                img_out = np.zeros(image_size, np.uint8)
+                out_pts = np.array([[marker_side/2,img_out.shape[0]-marker_side/2],
+                                    [img_out.shape[1]-marker_side/2,img_out.shape[0]-marker_side/2],
+                                    [marker_side/2,marker_side/2],
+                                    [img_out.shape[1]-marker_side/2,marker_side/2]])
 
-                    img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
+                src_points = np.zeros((4,2))
+                cens_mars = np.zeros((4,2))
 
-                    read_data = extract_data(img_out)
-                    read_color = extract_color(img_out)
-                    
-                    print(read_data)
-                    print(read_color)
-                    if(read_data != None):
-                        if(len(read_data) == 1):
-                            investor.addSlope(read_color,read_data[0])
-                        else:
-                            for i in range(0,len(read_data),2):
-                                dan = read_data[i]
-                                vrednost = read_data[i+1]
-                                investor.addReading(read_color, dan, vrednost)
-                    
+                if not ids is None:
+                    if len(ids)==4:
 
+                        print('4 Markers detected')
+                
+                        for idx in ids:
+                            # Calculate the center point of all markers
+                            cors = np.squeeze(corners[idx[0]-1])
+                            cen_mar = np.mean(cors,axis=0)
+                            cens_mars[idx[0]-1]=cen_mar
+                            cen_point = np.mean(cens_mars,axis=0)
                     
+                        for coords in cens_mars:
+                            #  Map the correct source points
+                            if coords[0]<cen_point[0] and coords[1]<cen_point[1]:
+                                src_points[2]=coords
+                            elif coords[0]<cen_point[0] and coords[1]>cen_point[1]:
+                                src_points[0]=coords
+                            elif coords[0]>cen_point[0] and coords[1]<cen_point[1]:
+                                src_points[3]=coords
+                            else:
+                                src_points[1]=coords
+
+                        h, status = cv2.findHomography(src_points, out_pts)
+                        img_out = cv2.warpPerspective(cv_image, h, (img_out.shape[1],img_out.shape[0]))
+                        
+                        #cv2.imshow('Warped image',img_out)
+                        #cv2.waitKey(1)
+
+                        img_msg = bridge.cv2_to_imgmsg(img_out, encoding="bgr8")
+
+                        read_data = extract_data(img_out)
+                        read_color = extract_color(img_out)
+                    
+                        get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0,read_color,dims)
+
+                        print("postan je bil obarvan marker")
+                        print(read_data)
+                        print(read_color)
+                        if(read_data[0] != None):
+                            uspesno = True
+                           
+                            if(len(read_data) == 1):
+                                investor.addSlope(read_color,read_data[0])
+                            else:
+                                for i in range(0,len(read_data),2):
+                                    dan = read_data[i]
+                                    vrednost = read_data[i+1]
+                                    investor.addReading(read_color, dan, vrednost)
+                    else:
+                        print('The number of markers is not ok:',len(ids))
                 else:
-                    print('The number of markers is not ok:',len(ids))
+                    print('No markers found')
+            
+            elif len(candidates)==0:
+                print('No contours detected')
             else:
-                print('No markers found')
-        
-        elif len(candidates)==0:
-            print('No contours detected')
-        else:
-            print('Some contours detected, not sure if it is a ring',len(candidates))
-            for elps in candidates:
-                e1 = elps[0]
-                e2 = elps[0]
-                cv2.ellipse(cv_image,e1,(0,255,0),3)
-                cv2.ellipse(cv_image,e2,(0,255,0),3)
+                print('Some contours detected, not sure if it is a ring',len(candidates))
+                for elps in candidates:
+                    e1 = elps[0]
+                    e2 = elps[0]
+                    cv2.ellipse(cv_image,e1,(0,255,0),3)
+                    cv2.ellipse(cv_image,e2,(0,255,0),3)
+            try_limit += 1
 
         #cv2.imshow('Image',cv_image)
         #cv2.waitKey(1)
@@ -286,6 +445,11 @@ def map_goals_callback(data):
         if len(goals) >= 4:
             pose.orientation.w = goals[3]
 
+        banke = investor.banks
+        for banka in banke:
+            print("barva banke:", banka.color, ", vrednost banke 7 dan:",banka.calculateValue())
+            print("")
+        post_numbers_on_cylinders()
         marker_pub.publish(pose)
         
 
@@ -294,7 +458,11 @@ if __name__ == '__main__':
     print("init")
     rospy.init_node('ring_reader', anonymous=False)
     marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
-    marker_pub = rospy.Publisher("regression_result", Pose,queue_size=1000)
+    marker_pub = rospy.Publisher("regression_result", Pose,queue_size=1000) 
+    markers_pub_color = rospy.Publisher("markers_color", MarkerArray,queue_size=1000) #marker array za obarvane kroge
+    marker_sub_cylinder = rospy.Subscriber("/marker_for_ring_reader", Marker, cylinder_marker_callback) #marker array od cilindrov
+    text_pub = rospy.Publisher("markers_text", MarkerArray,queue_size=1000) #text nad cilindri
+    
     try:
         rospy.spin()
     

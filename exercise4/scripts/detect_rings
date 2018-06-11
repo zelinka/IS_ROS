@@ -103,8 +103,8 @@ class The_Ring:
         self.time_rec = rospy.Time(0)
  
     def get_robot_pose(self):
-        print(rospy.Time.now(),"rospy.Time.now()")    
-        print(self.time_rec,"self.time_rec")  
+        #print(rospy.Time.now(),"rospy.Time.now()")    
+        #print(self.time_rec,"self.time_rec")  
         while(True):
             try:
                 trans = self.tf_buf.lookup_transform('map', 'base_link', self.time_rec)
@@ -151,7 +151,7 @@ class The_Ring:
             pose_final.position.z += np.pi
 
         tempKot = pose_final.position.z * 180/np.pi
-        print(tempKot)
+        #print(tempKot)
         if (315 <= tempKot <= 360 or -45 <= tempKot <= 45 or -360 <= tempKot <= -315 or 135 <= tempKot <= 225 or -225 <= tempKot <= -135):
             pose_final.position.y = pose_c.position.y
             if (315 <= tempKot <= 360 or -45 <= tempKot <= 45 or -360 <= tempKot <= -315):
@@ -167,7 +167,7 @@ class The_Ring:
                 pose_final.position.z = np.pi*1.5
 
 
-        print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
+        #print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
 
         return pose_final
 
@@ -180,16 +180,18 @@ class The_Ring:
                         return False
         return True
 
-    def get_pose(self,e,dist):
+    def get_pose(self,e,e2,dist):
         # Calculate the position of the detected ellipse
  
         k_f = 525 # kinect focal length in pixels
- 
+        
         elipse_x = self.dims[1] / 2 - e[0][0]
         elipse_y = self.dims[0] / 2 - e[0][1]
         
         angle_to_target = np.arctan2(elipse_x,k_f)
- 
+
+        #print("Razdalja do kroga: ",dist)
+
         # Get the angles in the base_link relative coordinate system
         x,y = dist*np.cos(angle_to_target), dist*np.sin(angle_to_target)
  
@@ -246,8 +248,8 @@ class The_Ring:
             global T_krogov
             #print("marker array length", self.marker_num)
             #print("stevilo skupin zaznav", len(T_krogov))
-            circle_confirmation = 8
-            thresh = 0.4
+            circle_confirmation = 6
+            thresh = 0.6
             """
             if(len(T_krogov) >= 3){
             l1 = 0
@@ -277,6 +279,7 @@ class The_Ring:
                             dodan = True
     
                         if(len(krog.tocke) == circle_confirmation and self.double_check(krog,circle_confirmation,thresh)):
+                            self.ratio(e,e2,True)
                             krog.markirana = True
                             #print("dodan marker")
                             # Create a Pose object with the same position
@@ -301,10 +304,10 @@ class The_Ring:
                             marker.type = Marker.CUBE
                             marker.action = Marker.ADD
                             marker.frame_locked = False
-                            marker.lifetime = rospy.Duration.from_sec(120)
+                            marker.lifetime = rospy.Duration.from_sec(1000)
                             marker.id = self.marker_num
                             marker.scale = Vector3(0.1, 0.1, 0.1)
-                            marker.color = ColorRGBA(1, 0, 0, 1)
+                            marker.color = ColorRGBA(1, 0, 1, 1)
                             self.marker_array.markers.append(marker)
                             self.markers_pub.publish(self.marker_array)
                             
@@ -320,7 +323,7 @@ class The_Ring:
                             marker.type = Marker.CUBE
                             marker.action = Marker.ADD
                             marker.frame_locked = False
-                            marker.lifetime = rospy.Duration.from_sec(120)
+                            marker.lifetime = rospy.Duration.from_sec(1000)
                             marker.id = self.marker_num
                             marker.scale = Vector3(0.1, 0.1, 0.1)
                             marker.color = ColorRGBA(0, 1, 0, 1)
@@ -340,7 +343,7 @@ class The_Ring:
                     tmp.add(tocka)
                     T_krogov.append(tmp)
 
-    def ratio(self,e1,e2):
+    def ratio(self,e1,e2,last):
 
         (x1,y1), (Ma1, ma1), angle1 = e1 
         (x2,y2), (Ma2, ma2), angle2 = e2 
@@ -362,33 +365,51 @@ class The_Ring:
        
         r2 = 0
 
-        if b1 < b2:
-            
-            r2 = b2/b1
-        else:
-            r2 = b1/b2
-        
-        if a1 < a2:
-            r1 = a2/a1
-        else:
-            r1 = a1/a2
-        #print("ratio:", r3)
-        if r1 > 1.2 and r1 < 1.5:
-            if r2 > 1.2 and r2 < 1.5:
+        manjsi_a = a1
+        vecji_a = a2
+        manjsi_b = b1
+        vecji_b = b2
+
+        if a1 > a2:
+            manjsi_a = a2
+            vecji_a = a1
+
+        if b1 > b2:
+            manjsi_b = b2
+            vecji_b = b1
+
+        r1= vecji_a/manjsi_a
+        r2 = vecji_b/manjsi_b
+
+        #print("a: ", vecji_a)
+        if(last):
+            print("last detection")
+            print("a: ", vecji_a)
+            print("b: ", vecji_b)
+            print("r1 r2 r3 ", r1," ", r2 ," ", r3)
+            print("")
+
+        if 1.2 < r1 < 1.5:
+            if 1.2 < r2 < 1.5:
                 if 0.9 < r3 < 1.2:
-                    return True
+                    if vecji_b > 37:
+                        return True
         return False
 
  
     def image_callback(self,data):
         self.time_rec = data.header.stamp
         #print('Iam here!')
-        if(self.counter >= 10):
+        if(self.counter >= 5):
             #rospy.loginfo(self.counter)
             try:
-                cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-               
+                cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")               
             except CvBridgeError as e:
+                print(e)
+
+            try:
+                depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
+            except Exception as e:
                 print(e)
 
             # Set the dimensions of the image
@@ -397,7 +418,7 @@ class The_Ring:
             #print("self.dims[1]",self.dims[1])
             #print("self.dims[2]",self.dims[2])
             #cv_image = cv_image[60:-60, 80:-80]
-            cv_image = cv_image[60:360,80:380]
+            cv_image = cv_image[60:360,:]
             #print("tralala")
             
             #print(self.dims)
@@ -412,6 +433,8 @@ class The_Ring:
             # Binarize the image
             #ret, thresh = cv2.threshold(img, 60, 255, 0)
             thresh = cv2.Canny(img,100,200)
+            dilate_kernel = np.ones((7,7),np.uint8)
+            #thresh = cv2.dilate(thresh, dilate_kernel, iterations = 1)
             #cv2.imshow("Binary window", thresh)
             #cv2.imshow("Slika",cv_image)
             #cv2.waitKey(1)
@@ -438,6 +461,7 @@ class The_Ring:
  
  
             # Find two elipses with same centers
+            
             candidates = []
             for n in range(len(elps)):
                 for m in range(n + 1, len(elps)):
@@ -448,46 +472,45 @@ class The_Ring:
  
                     dist = np.sqrt(((e1[0][0] - e2[0][0]) ** 2 + (e1[0][1] - e2[0][1]) ** 2))
                     #             print dist
-                    if dist < 5 and self.ratio(e1,e2):
+                    if dist < 5 and self.ratio(e1,e2,False):
                         candidates.append((e1,e2))
- 
-            try:
-                depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
-            except Exception as e:
-                print(e)
  
             #depth_img = depth_img[60:330, 0:self.dims[1]]
 
+            #print ("cand length", len(candidates))
+
             # Extract the depth from the depth image
-            for c in candidates:
- 
+            #for c in candidates:
+            if len(candidates) >= 1:
+                c = candidates[0]
+
                 e1 = c[0]
                 e2 = c[1]
 
 
                 #cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
                 #cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
- 
+
                 size = (e1[1][0]+e1[1][1])/2
                 center = (e1[0][1], e1[0][0])
- 
+
                 x1 = int(center[0] - size / 2)
                 x2 = int(center[0] + size / 2)
                 x_min = x1 if x1>0 else 0
                 x_max = x2 if x2<cv_image.shape[0] else cv_image.shape[0]
- 
+
                 y1 = int(center[1] - size / 2)
                 y2 = int(center[1] + size / 2)
                 y_min = y1 if y1 > 0 else 0
                 y_max = y2 if y2 < cv_image.shape[1] else cv_image.shape[1]
- 
+
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
- 
+
                 #depth_image = depth_image[60:-60, 80:-80]
-                depth_image = depth_image[60:360, 80:380]
- 
-                self.get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
- 
+                depth_image = depth_image[60:360, :]
+
+                self.get_pose(e1, e2,float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
+
             self.counter = 0
         else:
             self.counter = self.counter + 1

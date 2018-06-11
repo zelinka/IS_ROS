@@ -97,6 +97,8 @@ def extract_data(img):
     #print(decodedObjects)
 
     data = None
+
+    img_za_backup = img
     
     if len(decodedObjects) == 1:
         dObject = decodedObjects[0]
@@ -147,9 +149,45 @@ def extract_data(img):
 
             data = extract_plot(img)
             data = [data]
-            if(data == None):    # None je v primeru ko je prevelik delez slike crn (verjetno QR)
+            if(data == [None]):    # None je v primeru ko je prevelik delez slike crn (verjetno QR)
                 print("Napaka: Na sliki je verjetno QR ampak ni bil prepoznan")
-                return None
+
+
+                img_za_backup = cv2.cvtColor( img_za_backup, cv2.COLOR_RGB2GRAY )
+                ret, img_za_backup = cv2.threshold(img_za_backup, 120, 255, 0)
+                #cv2.imshow('thresh image',img_za_backup)
+                #cv2.waitKey()
+
+                decodedObjects2 = pyzbar.decode(img_za_backup)
+
+                if len(decodedObjects2) == 1:
+                    dObject = decodedObjects2[0]
+                    print("Found a QR code in the image!")
+                    #print("Data: ", dObject.data,'\n')
+                    data = dObject.data
+                    tmp = data.split(';') 
+                    data = []
+                    for t in tmp:
+                        tt = map(float,t.split('_'))
+                        data.append(tt[0])
+                        data.append(tt[1])
+                    # Visualize the detected QR code in the image
+                    points  = dObject.polygon
+                    if len(points) > 4 : 
+                        hull = cv2.convexHull(np.array([point for point in points], dtype=np.float32))
+                        hull = list(map(tuple, np.squeeze(hull)))
+                    else : 
+                        hull = points;
+                        
+                    ## Number of points in the convex hull
+                    n = len(hull)
+                    
+                    ## Draw the convext hull
+                    for j in range(0,n):
+                        cv2.line(img, hull[j], hull[ (j+1) % n], (0,255,0), 2)
+
+                    if data == None:
+                        return [None]
         else:
             data = extract_text(img)
             #data = "popravi pytesseract"
@@ -176,11 +214,12 @@ def extract_color(img):
 
     print(avg_h)
 
-    if(avg_h > 150 or avg_h < 15):
+
+    if(avg_h > 130 or avg_h < 15):
         return "red"
     elif(avg_h > 40 and avg_h < 70):
         return "green"
-    elif(avg_h > 95 and avg_h < 140):
+    elif(avg_h > 95 and avg_h < 130):
         return "blue"
     elif(avg_h > 15 and avg_h < 35):
         return "yellow"

@@ -321,36 +321,40 @@ void premikanje() {
         {60,165, -130}
     };
     */
-    int num_of_goals = 23;
+    int num_of_goals = 27;
     int koordinate [num_of_goals][3] = {
         {45, 230, 0},
         {45, 230, 180},
         {45, 230, 315},
         {44,268, 90},
         {44,268, 0},
+        {44,268, 330},
         {44,268,270},
-        {20,293, 0},
-        {20,293, 270},
+        {22,295, 0}, //24,300
+        {22,295, 270}, //24,300
+        {22,295, 180}, //24,300
         {22,272, 250},
         {22, 272, 180},
         {22, 272, 90},
-        {30, 249, 0},
-        {30, 249, 90},
-        {30, 249, 180},
+        {30, 246, 0}, //249
+        {30, 246, 90}, //249
+        {30, 246, 180}, //249
         {18, 245, 270},
         {15, 227, 0},
         {15, 227, 90},
         {15, 227, 180},
-        {18, 217, 90},
-        {18, 217, 270},
+        {15, 217, 0},
+        {28, 217, 90},
+        {28, 217, 180},
+        {28, 217, 270},
         {45, 208, 0},
         {45, 208, 90},
         {45, 208, 180},
     };
 
     // i < dolzina int koordinate[]
-    int i = 3;
-    int num_of_destinations = 10;
+    int i = 0;
+    int num_of_destinations = 27;
     //float pi = 3.14159265358979323846;
     ROS_INFO("premikanje");
     while(i < num_of_destinations) {
@@ -397,7 +401,7 @@ void premikanje() {
                 //ROS_INFO("Hooray, the base moveset_manipulator_positiond");
                 //system("rosrun sound_play say.py 'position'");
                 //i++;
-                ros::Duration(0.75).sleep();
+                ros::Duration(3.0).sleep();
                
         }
         else{
@@ -406,10 +410,11 @@ void premikanje() {
         i++;
         if (i >= num_of_destinations){
             
-            ROS_INFO("Killing /cylinder_marker_clustering and /cylinder_segmentation and /image_converter");
+            ROS_INFO("Killing /cylinder_marker_clustering , /cylinder_segmentation , /image_converter  and  /detect_rings");
             system("rosnode kill /cylinder_marker_clustering");
             system("rosnode kill /cylinder_segmentation");
             system("rosnode kill /image_converter");
+            //system("rosnode kill /detect_rings");
             
         }
     }
@@ -430,7 +435,7 @@ void pozdravljanje_cylinder() {
 
     // i < dolzina int koordinate[]
     int i = 0;
-    while(i < array_counter_cylinder) {
+    while(i < array_counter_cylinder - 2) {
 
         ROS_INFO("grem pozdravljat cilindre %d od %d", i, array_counter_cylinder);
 		float x = array_cylinder[i][0];

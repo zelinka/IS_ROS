@@ -98,6 +98,8 @@ def get_goal(pose_r, pose_c):
             pose_final.position.z += np.pi
         elif(-pose_g.position.x == 0 and -pose_g.position.y < 0):
             pose_final.position.z += np.pi
+        kot = 88
+        pose_final.position.z += (np.pi / 180) * kot
 
         print("Kot vektorja = ", (pose_final.position.z*180/np.pi), " x=",-pose_g.position.x, " y=", -pose_g.position.y)
 
@@ -166,87 +168,90 @@ def marker_callback(data):
         print("\ndodan marker in pozicija goal-a\n")
     else:
     '''
-
     #tocka = C_tocka(data.pose.position.x, data.pose.position.y, data.pose.position.z)
     tocka = data
-    print("dobil point")
-    if len(cylinder_array) == 0:
-        tmp = C_Cilinder()
-        tmp.add(tocka)
-        cylinder_array.append(tmp)
-    else:
-        dodan = False
-        novKrog = True
-        print('stevilo skupin zaznav',len(cylinder_array))
-        for cylinder in cylinder_array:
-            if(euclidian(tocka, cylinder.centroid) < thresh):
-                novKrog = False
-                print(euclidian(tocka, cylinder.centroid))
+    #print("dobil point")
+    print(tocka.pose.position.x)
+    if (!np.isnan(tocka.pose.position.x) and !np.isnan(tocka.pose.position.y)):
+		
+		
+		if len(cylinder_array) == 0:
+			tmp = C_Cilinder()
+			tmp.add(tocka)
+			cylinder_array.append(tmp)
+		else:
+			dodan = False
+			novKrog = True
+			print('stevilo skupin zaznav',len(cylinder_array))
+			for cylinder in cylinder_array:
+				if(euclidian(tocka, cylinder.centroid) < thresh):
+					novKrog = False
+					print(euclidian(tocka, cylinder.centroid))
 
-                if(len(cylinder.tocke) < cylinder_confirmation+1 and not dodan):
-                    cylinder.add(tocka)
-                    dodan = True
-                print('stevilo zaznav v skupini',len(cylinder.tocke))
-                if(len(cylinder.tocke) == cylinder_confirmation):
-                    cylinder.markirana = True
-                    print("dodan marker")
-                    # Create a Pose object with the same position
-                    center = cylinder.centroid
-                    
-                    zadnja_zaznava = cylinder.tocke[cylinder_confirmation-1]
+					if(len(cylinder.tocke) < cylinder_confirmation+1 and not dodan):
+						cylinder.add(tocka)
+						dodan = True
+					print('stevilo zaznav v skupini',len(cylinder.tocke))
+					if(len(cylinder.tocke) == cylinder_confirmation and ):
+						cylinder.markirana = True
+						print("dodan marker")
+						# Create a Pose object with the same position
+						center = cylinder.centroid
+						
+						zadnja_zaznava = cylinder.tocke[cylinder_confirmation-1]
 
-                    pose_robot = get_robot_pose(zadnja_zaznava.header.stamp)
+						pose_robot = get_robot_pose(zadnja_zaznava.header.stamp)
 
-                    pose = Pose()
-                    pose.position.x = center.x
-                    pose.position.y = center.y
-                    pose.position.z = center.z
-                    pose.orientation.w = 1
+						pose = Pose()
+						pose.position.x = center.x
+						pose.position.y = center.y
+						pose.position.z = center.z
+						pose.orientation.w = 1
 
-                    pose_goal = get_goal(pose_robot, pose)
-                    markers2.publish(pose_goal)
-                    
-                    marker = Marker()
-                    marker.header.stamp = rospy.Time(0)
-                    marker.header.frame_id = "map"
-                    marker.pose = pose
-                    marker.type = Marker.CYLINDER
-                    marker.action = Marker.ADD
-                    marker.frame_locked = False
-                    marker.id = marker_num
-                    marker_num += 1
-                    marker.scale = Vector3(0.1, 0.1, 0.1)
-                    marker.color = ColorRGBA(255,0,0, 1)
-                    marker_array.markers.append(marker)
-                    array_pub.publish(marker_array)
-                    '''
-                    markerG = Marker()
-                    markerG.header.stamp = rospy.Time(0)
-                    markerG.header.frame_id = "map"
-                    markerG.pose = pose_goal
-                    markerG.type = Marker.CYLINDER
-                    markerG.action = Marker.ADD
-                    markerG.frame_locked = False
-                    markerG.id = marker_num
-                    marker_num += 1
-                    markerG.scale = Vector3(0.1, 0.1, 0.1)
-                    markerG.color = ColorRGBA(1,1,1, 1)
-                    marker_array.markers.append(markerG)
-                    '''
-                    marker.pose = pose_goal
-                    marker.id = marker_num
-                    marker_num += 1
-                    marker_array.markers.append(marker)
-                    marker.color = ColorRGBA(0,255,0, 1)
-                    array_pub.publish(marker_array)
-                    
-                    print("\ndodan marker in pozicija goal-a\n")
+						pose_goal = get_goal(pose_robot, pose)
+						markers2.publish(pose_goal)
+						
+						marker = Marker()
+						marker.header.stamp = rospy.Time(0)
+						marker.header.frame_id = "map"
+						marker.pose = pose
+						marker.type = Marker.CYLINDER
+						marker.action = Marker.ADD
+						marker.frame_locked = False
+						marker.id = marker_num
+						marker_num += 1
+						marker.scale = Vector3(0.1, 0.1, 0.1)
+						marker.color = ColorRGBA(255,0,0, 1)
+						marker_array.markers.append(marker)
+						array_pub.publish(marker_array)
+						'''
+						markerG = Marker()
+						markerG.header.stamp = rospy.Time(0)
+						markerG.header.frame_id = "map"
+						markerG.pose = pose_goal
+						markerG.type = Marker.CYLINDER
+						markerG.action = Marker.ADD
+						markerG.frame_locked = False
+						markerG.id = marker_num
+						marker_num += 1
+						markerG.scale = Vector3(0.1, 0.1, 0.1)
+						markerG.color = ColorRGBA(1,1,1, 1)
+						marker_array.markers.append(markerG)
+						'''
+						marker.pose = pose_goal
+						marker.id = marker_num
+						marker_num += 1
+						marker_array.markers.append(marker)
+						marker.color = ColorRGBA(0,255,0, 1)
+						array_pub.publish(marker_array)
+						
+						print("\ndodan marker in pozicija goal-a\n")
 
 
-        if (novKrog):
-            tmp = C_Cilinder()
-            tmp.add(tocka)
-            cylinder_array.append(tmp)
+			if (novKrog):
+				tmp = C_Cilinder()
+				tmp.add(tocka)
+				cylinder_array.append(tmp)
 
 
 if __name__ == "__main__":
@@ -255,8 +260,8 @@ if __name__ == "__main__":
     rospy.init_node('cylinder_marker_clustering', anonymous=False)
 
     cylinder_array = []
-    thresh = 0.5
-    cylinder_confirmation = 2
+    thresh = 1
+    cylinder_confirmation = 3
 
     marker_array = MarkerArray()
 

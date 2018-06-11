@@ -243,7 +243,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
     for(int i = 0; i < cloud_cylinder->points.size(); i++){
         uint32_t point_rgb = *reinterpret_cast<int*>(&cloud_cylinder->points[i].rgb);
 
-        r_sum  += (double)((int)(point_rgb >> 16) & 0x0000ff) / 255;
+        r_sum  += (double)((int) (point_rgb >> 16) & 0x0000ff) / 255;
         g_sum  += (double)((int) (point_rgb >> 8)  & 0x0000ff) / 255;
         b_sum  += (double)((int) (point_rgb)       & 0x0000ff) / 255;
 
@@ -274,7 +274,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
         marker_barva[1] = 0.0f;
         marker_barva[2] = 0.0f;
     }
-    else if(hue > 40 && hue < 70){
+    else if(hue > 30 && hue < 70){
         std::cerr << "green"<< std::endl; // 48
         marker_barva[0] = 0.0f;
         marker_barva[1] = 1.0f;
@@ -286,7 +286,7 @@ cloud_cb (const pcl::PCLPointCloud2ConstPtr& cloud_blob)
         marker_barva[1] = 0.0f;
         marker_barva[2] = 1.0f;
     }
-    else if (hue > 15 && hue < 35) { // 23
+    else if (hue > 15 && hue < 30) { // 23
         std::cerr << "yellow"<< std::endl;
         marker_barva[0] = 1.0f;
         marker_barva[1] = 1.0f;

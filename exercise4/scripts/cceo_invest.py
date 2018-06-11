@@ -41,8 +41,9 @@ class Cceo:
 
             
     def addReading(self, day, value):
+	print(self.data['day'])
         if day in self.data['day']:
-            raise DataError("Day already in dataset")
+            return
         self.data['day'].append(day)
         self.data['value'].append(value)
 
@@ -50,7 +51,7 @@ class Cceo:
         self.slope = slope
 
     def calculateValue(self):
-        if self.slope is None:
+        if self.slope is None and len(self.data["day"]) >= 2:
             df = pd.DataFrame(data=self.data)
             x = df['day']
             y = df['value']
@@ -63,17 +64,16 @@ class Cceo:
                 return float(regr.predict(7))
             except:
                 #default value
+                print("regression failed for some reason")
                 return -100
                 #
-        else:
-            # default value
-            if(len(self.data)==0):
-                self.addReading(1,1)
-            self.slope=0
-            #
+        elif self.slope is not None and len(self.data["day"]) >= 1:
             fp = (self.data['day'][0], self.data['value'][0])
             f = LinearFunction.fromSlopePoint(self.slope, fp)
             return f.calc(7)
+        else:
+            print("no slope or 0 data points")
+            return -(2 ** 16) + 1
 
 
 class Investor:
