@@ -50,7 +50,10 @@ class P_tocka:
         self.x = x
         self.y = y
         self.z = z
- 
+
+def euclidian_pose(tocka1, tocka2):
+    return sqrt((tocka1.position.x - tocka2.position.x)**2 + (tocka1.position.y - tocka2.position.y)**2)
+
 def euclidian(tocka1, tocka2):
     return sqrt((tocka1.x - tocka2.x)**2 + (tocka1.y - tocka2.y)**2)
  
@@ -108,8 +111,9 @@ class The_Ring:
         while(True):
             try:
                 trans = self.tf_buf.lookup_transform('map', 'base_link', self.time_rec)
-            except:
-                #print("error")
+                #print("while")
+            except e:
+                #print(e)
                 continue
             break
 
@@ -126,13 +130,13 @@ class The_Ring:
         pose_g = Pose()
         pose_g.position.x = pose_r.position.x - pose_c.position.x
         pose_g.position.y = pose_r.position.y - pose_c.position.y
-        pose_g.position.z = pose_r.position.z - pose_c.position.z
+        pose_g.position.z = 0
         dist  = self.pose_length(pose_g)
         pose_g.position.x /= dist
         pose_g.position.y /= dist
         #pose_g.position.z /= dist
-        pose_g.position.x *= 0.5
-        pose_g.position.y *= 0.5
+        pose_g.position.x *= 0.42
+        pose_g.position.y *= 0.42
         #pose_g.position.z *= 0.6
 
         pose_final = Pose()
@@ -214,10 +218,17 @@ class The_Ring:
             break
         
         '''(point_world.x != None and point_world.y != None and point_world.z != None))or '''
+        #pose = Pose()
+        #pose.position.x = point_world.point.x
+        #pose.position.y = point_world.point.y
+        #pose.position.z = point_world.point.z
+        #pose_robot = self.get_robot_pose()
+        #print('robot pose',pose_robot)
+        #print("euclidian pose",euclidian_pose(pose, pose_robot))
         if(point_s.point.x != 0 and point_s.point.y != 0):
         #point_s.header.frame_id = "base_link"
         #point_s.header.stamp = 
-            '''
+            
             pose = Pose()
             pose.position.x = point_world.point.x
             pose.position.y = point_world.point.y
@@ -233,12 +244,12 @@ class The_Ring:
             marker.frame_locked = False
             marker.lifetime = rospy.Duration.from_sec(120)
             marker.id = self.marker_num
-            marker.scale = Vector3(0.1, 0.1, 0.1)
-            marker.color = ColorRGBA(0, 1, 0, 1)
+            marker.scale = Vector3(0.05, 0.05, 0.05)
+            marker.color = ColorRGBA(1, 0, 0, 0.5)
             self.marker_array.markers.append(marker)
             self.markers_pub.publish(self.marker_array)
-            print("dodana zaznava")
-           bridge '''
+            #print("dodana zaznava")
+          
             
 
             tocka = P_tocka(point_world.point.x, point_world.point.y, point_world.point.z)
@@ -248,8 +259,8 @@ class The_Ring:
             global T_krogov
             #print("marker array length", self.marker_num)
             #print("stevilo skupin zaznav", len(T_krogov))
-            circle_confirmation = 6
-            thresh = 0.6
+            circle_confirmation = 4
+            thresh = 0.5
             """
             if(len(T_krogov) >= 3){
             l1 = 0
@@ -291,7 +302,7 @@ class The_Ring:
 
                             pose.position.x = center.x
                             pose.position.y = center.y
-                            pose.position.z = center.z
+                            pose.position.z = 0
 
 
                             self.markers_cilji_pub.publish(self.get_goal(pose_robot, pose))
@@ -382,25 +393,26 @@ class The_Ring:
         r2 = vecji_b/manjsi_b
 
         #print("a: ", vecji_a)
-        if(last):
-            print("last detection")
-            print("a: ", vecji_a)
-            print("b: ", vecji_b)
-            print("r1 r2 r3 ", r1," ", r2 ," ", r3)
-            print("")
+        #if(last):
+            #print("last detection")
+            #print("a: ", vecji_a)
+            #print("b: ", vecji_b)
+            #print("r1 r2 r3 ", r1," ", r2 ," ", r3)
+            #print("")
+        #print("b: ", vecji_b)
 
         if 1.2 < r1 < 1.5:
             if 1.2 < r2 < 1.5:
                 if 0.9 < r3 < 1.2:
-                    if vecji_b > 37:
-                        return True
+                    #if vecji_b > 40:
+                    return True
         return False
 
  
     def image_callback(self,data):
         self.time_rec = data.header.stamp
         #print('Iam here!')
-        if(self.counter >= 5):
+        if(self.counter >= 10):
             #rospy.loginfo(self.counter)
             try:
                 cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")               

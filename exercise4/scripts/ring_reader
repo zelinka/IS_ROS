@@ -25,6 +25,8 @@ investor = Investor()
 
 colors = ["red", "green", "blue","yellow"]
 
+circle_dict = {}
+
 for c in colors:
     temp = Cceo(c)
     investor.addCceo(temp)
@@ -73,7 +75,7 @@ def post_numbers_on_cylinders():
                 marker = Marker()
                 marker.id = ind
                 marker.header.stamp = marker_c.header.stamp
-                marker.header.frame_id = marker_c.header.frame_id
+                marker.header.frame_id = marker_c.header.frame_id0
                 marker.pose = pose
                 marker.type = Marker.TEXT_VIEW_FACING
                 marker.text = str(vrednost)[0:3]
@@ -106,7 +108,7 @@ def get_color(color):
     elif color == "yellow":
         return (1,1,0)
 
-def get_pose(e,dist,color,dims):
+def get_pose(e,dist,color,dims,data):
         # Calculate the position of the detected ellipse
         global marker_num
         global markers_pub_color
@@ -143,7 +145,7 @@ def get_pose(e,dist,color,dims):
 
         pose.position.x = point_world.point.x
         pose.position.y = point_world.point.y
-        pose.position.z = point_world.point.z
+        pose.position.z = 0
 
         (red,green,blue) = get_color(color)
 
@@ -160,6 +162,28 @@ def get_pose(e,dist,color,dims):
         marker.id = marker_num
         marker.scale = Vector3(0.1, 0.1, 0.1)
         marker.color = ColorRGBA(red, green, blue, 1)
+        marker_array.markers.append(marker)
+        markers_pub_color.publish(marker_array)
+
+        pose.position.z += 4
+        marker_num += 1
+        marker = Marker()
+        marker.header.stamp = point_world.header.stamp
+        marker.header.frame_id = point_world.header.frame_id
+        marker.pose = pose
+        marker.type = Marker.TEXT_VIEW_FACING
+        izpis = ' '.join(str(d) for d in data)
+        if (len(izpis) > 3):
+            marker.text = izpis[0:4]
+        else:
+            marker.text = izpis
+        
+        marker.action = Marker.ADD
+        marker.frame_locked = False
+        marker.lifetime = rospy.Duration.from_sec(1000)
+        marker.id = marker_num
+        marker.scale = Vector3(0.2, 0.2, 0.2)
+        marker.color = ColorRGBA(0, 0, 0, 1)
         marker_array.markers.append(marker)
         markers_pub_color.publish(marker_array)
     
@@ -204,8 +228,8 @@ def ratio(e1,e2):
     r2 = vecji_b/manjsi_b
 
     #print("a: ", vecji_a)
-    print("b: ", vecji_b)
-    print("r1 r2 r3 ", r1," ", r2 ," ", r3)
+    #print("b: ", vecji_b)
+    #print("r1 r2 r3 ", r1," ", r2 ," ", r3)
 
     if 1.2 < r1 < 1.5:
         if 1.2 < r2 < 1.5:
@@ -217,6 +241,20 @@ def cylinder_marker_callback(data):
     global marker_array_cylinder
     markers_check(data)
     marker_array_cylinder.markers.append(data)
+
+def check_if_added(data, color):
+
+    global circle_dict
+
+    if (circle_dict.has_key(color)):
+        for d in circle_dict[color]:
+            if(len(d) == 1 and len(data) == 1):
+                return True
+            elif(d == data):
+                return True
+
+    return False
+        
 
 def map_goals_callback(data):
     #self.time_rec = data.header.stamp
@@ -349,7 +387,7 @@ def map_goals_callback(data):
                 if not ids is None:
                     if len(ids)==4:
 
-                        print('4 Markers detected')
+                        print('4 Markers deteccircle_dicted')
                 
                         for idx in ids:
                             # Calculate the center point of all markers
@@ -379,22 +417,32 @@ def map_goals_callback(data):
 
                         read_data = extract_data(img_out)
                         read_color = extract_color(img_out)
-                    
-                        get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0,read_color,dims)
+                        global circle_dict
 
-                        print("postan je bil obarvan marker")
-                        print(read_data)
-                        print(read_color)
-                        if(read_data[0] != None):
-                            uspesno = True
-                           
-                            if(len(read_data) == 1):
-                                investor.addSlope(read_color,read_data[0])
-                            else:
-                                for i in range(0,len(read_data),2):
-                                    dan = read_data[i]
-                                    vrednost = read_data[i+1]
-                                    investor.addReading(read_color, dan, vrednost)
+                        if(read_data[0] != None and not check_if_added(read_data, read_color)):
+ 
+                            if(not circle_dict.has_key(read_color)):
+                                circle_dict[read_color] = []
+                            
+                            circle_dict[read_color].append(read_data)
+                            
+                            get_pose(e1, float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0,read_color,dims,read_data)
+
+                            print("postan je bil obarvan marker")
+                            print(read_data)
+                            print(read_color)
+                            if(read_data[0] != None):
+                                uspesno = True
+                            
+                                if(len(read_data) == 1):
+                                    investor.addSlope(read_color,read_data[0])
+                                else:
+                                    for i in range(0,len(read_data),2):
+                                        dan = read_data[i]
+                                        vrednost = read_data[i+1]
+                                        investor.addReading(read_color, dan, vrednost)
+                        else:
+                            print("krog je ze bil dodan")
                     else:
                         print('The number of markers is not ok:',len(ids))
                 else:
@@ -451,7 +499,7 @@ def map_goals_callback(data):
             print("")
         post_numbers_on_cylinders()
         marker_pub.publish(pose)
-        
+        print("")
 
 
 if __name__ == '__main__':

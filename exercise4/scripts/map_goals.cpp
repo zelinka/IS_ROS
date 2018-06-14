@@ -326,13 +326,13 @@ void premikanje() {
         {45, 230, 0},
         {45, 230, 180},
         {45, 230, 315},
-        {44,268, 90},
         {44,268, 0},
+        {44,268, 90},
+        {44,268, 250},
         {44,268, 330},
-        {44,268,270},
         {22,295, 0}, //24,300
-        {22,295, 270}, //24,300
         {22,295, 180}, //24,300
+        {22,295, 270}, //24,300
         {22,272, 250},
         {22, 272, 180},
         {22, 272, 90},
@@ -343,7 +343,7 @@ void premikanje() {
         {15, 227, 0},
         {15, 227, 90},
         {15, 227, 180},
-        {15, 217, 0},
+        {17, 214, 300},
         {28, 217, 90},
         {28, 217, 180},
         {28, 217, 270},
@@ -353,6 +353,13 @@ void premikanje() {
     };
 
     // i < dolzina int koordinate[]
+    //zgornja polovica mape
+    //int i = 3;
+    //int num_of_destinations = 13;
+    //spodnja polovica mape
+    //int i = 0;
+    //int num_of_destinations = 2;
+    //cela mapa
     int i = 0;
     int num_of_destinations = 27;
     //float pi = 3.14159265358979323846;
@@ -373,6 +380,11 @@ void premikanje() {
         tf::Point transformed = map_transform * pt;
         ROS_INFO("Moving to (x: %f, y: %f), i = %d", transformed.x(), transformed.y(), i);
         //ROS_INFO("Moving to (x: %d, y: %d), i = %d", x, y, i); 
+
+        tf::Point transfrom_back = map_transform * transformed;
+        tf::Point pt2((int)transfrom_back.x() / map_resolution, transfrom_back.y() / map_resolution + size_y,0.0);
+        ROS_INFO("Transformed back (x: %f, y: %f), i = %d", pt2.x(), pt2.y(), i);
+
 
         if (transformed.x() == 0.0 && transformed.y() == 0.0) {
             break;
@@ -526,7 +538,65 @@ void pozdravljanje_ring() {
                 std_msgs::String msg;
                 msg.data = "picture";
                 homo_pub.publish(msg);
-                ROS_INFO("poslano homo_pub");
+                ROS_INFO("poslano homo_pub 1");
+
+                move_base_msgs::MoveBaseGoal goal;
+                goal.target_pose.header.stamp = ros::Time::now();
+                goal.target_pose.header.frame_id = "map";
+                goal.target_pose.pose.orientation.x = 0;
+                goal.target_pose.pose.orientation.y = 0;
+                goal.target_pose.pose.orientation.z = 1*sin((kot+0.4)/2);
+                goal.target_pose.pose.orientation.w = cos((kot+0.4)/2);
+                goal.target_pose.pose.position.x = x;
+                goal.target_pose.pose.position.y = y;
+
+                ROS_INFO("rotiram v plus");
+                ac.sendGoal(goal);
+                
+                ac.waitForResult();
+
+                if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+
+                    system("rosrun sound_play say.py 'my precious'");
+                    std_msgs::String msg;
+                    msg.data = "picture";
+                    homo_pub.publish(msg);
+                    ROS_INFO("poslano homo_pub 2");
+
+                    move_base_msgs::MoveBaseGoal goal;
+                    goal.target_pose.header.stamp = ros::Time::now();
+                    goal.target_pose.header.frame_id = "map";
+                    goal.target_pose.pose.orientation.x = 0;
+                    goal.target_pose.pose.orientation.y = 0;
+                    goal.target_pose.pose.orientation.z = 1*sin((kot-0.4)/2);
+                    goal.target_pose.pose.orientation.w = cos((kot-0.4)/2);
+                    goal.target_pose.pose.position.x = x;
+                    goal.target_pose.pose.position.y = y;
+
+                    ROS_INFO("rotiram v minus");
+                    ac.sendGoal(goal);
+                    
+                    ac.waitForResult();
+
+                    if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+                        system("rosrun sound_play say.py 'my precious'");
+                        std_msgs::String msg;
+                        msg.data = "picture";
+                        homo_pub.publish(msg);
+                        ROS_INFO("poslano homo_pub 3");
+                    }
+                    else{
+                        system("rosrun sound_play say.py 'failed to rotate 2'");
+                        //i++;
+                        //ROS_INFO("The base failed to move");
+                    }
+                }
+                else{
+                    system("rosrun sound_play say.py 'failed to rotate 1'");
+                    //i++;
+                    //ROS_INFO("The base failed to move");
+                }
+
                 //i++;
         }
         else{
