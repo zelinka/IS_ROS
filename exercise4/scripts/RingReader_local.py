@@ -35,7 +35,7 @@ def extract_plot(img):
 
     #tabela v prvem for je za piksle kjer se bo gledal kot, med 30 in 110 se doda se par tock
     # height je levo->desno, width je gor->dol (PAZI PRI SPREMEMBAH)
-    for i in [25, 40, 55, 70, 85, 100, 115]:
+    for i in [25, 32, 40, 47, 55, 62, 70, 77, 85, 92, 100, 107, 115]:
         for j in range(0, width):
             #print(img[j, i])
             if (img[j, i] < 255):

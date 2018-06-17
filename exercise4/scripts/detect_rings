@@ -112,7 +112,7 @@ class The_Ring:
             try:
                 trans = self.tf_buf.lookup_transform('map', 'base_link', self.time_rec)
                 #print("while")
-            except e:
+            except:
                 #print(e)
                 continue
             break
@@ -258,9 +258,9 @@ class The_Ring:
     
             global T_krogov
             #print("marker array length", self.marker_num)
-            #print("stevilo skupin zaznav", len(T_krogov))
-            circle_confirmation = 4
-            thresh = 0.5
+            print("stevilo skupin zaznav", len(T_krogov))
+            circle_confirmation = 7
+            thresh = 0.25
             """
             if(len(T_krogov) >= 3){
             l1 = 0
@@ -404,8 +404,10 @@ class The_Ring:
         if 1.2 < r1 < 1.5:
             if 1.2 < r2 < 1.5:
                 if 0.9 < r3 < 1.2:
-                    #if vecji_b > 40:
-                    return True
+                    if vecji_b > 35:
+                        return True
+                    else:
+                        print("premali")
         return False
 
  
@@ -423,6 +425,9 @@ class The_Ring:
                 depth_img = rospy.wait_for_message('/camera/depth_registered/image_raw', Image)
             except Exception as e:
                 print(e)
+
+            
+            
 
             # Set the dimensions of the image
             self.dims = cv_image.shape
@@ -450,7 +455,6 @@ class The_Ring:
             #cv2.imshow("Binary window", thresh)
             #cv2.imshow("Slika",cv_image)
             #cv2.waitKey(1)
-
  
             # Extract contours
             contours_, contours, hierarchy = cv2.findContours(thresh, 2, 2)
@@ -500,8 +504,8 @@ class The_Ring:
                 e2 = c[1]
 
 
-                #cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
-                #cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
+                cv2.ellipse(cv_image, e1, (0, 255, 0), 2)
+                cv2.ellipse(cv_image, e2, (0, 255, 0), 2)
 
                 size = (e1[1][0]+e1[1][1])/2
                 center = (e1[0][1], e1[0][0])
@@ -518,10 +522,18 @@ class The_Ring:
 
                 depth_image = self.bridge.imgmsg_to_cv2(depth_img, "16UC1")
 
+                #print("depth", depth_image.shape)
+
                 #depth_image = depth_image[60:-60, 80:-80]
-                depth_image = depth_image[60:360, :]
+                depth_image = depth_image[60:360,:]
+
 
                 self.get_pose(e1, e2,float(np.mean(depth_image[x_min:x_max,y_min:y_max]))/1000.0)
+
+                #cv2.imshow("Slika", depth_image)
+                #cv2.waitKey(1)
+                #cv2.imshow("depth", cv_image)
+                #cv2.waitKey(1)
 
             self.counter = 0
         else:

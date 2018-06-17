@@ -67,7 +67,7 @@ class Cceo:
                 print("regression failed for some reason")
                 return -100
                 #
-        elif self.slope is not None and len(self.data["day"]) >= 1:
+        elif self.slope is not None and len(self.data["day"]) == 1:
             fp = (self.data['day'][0], self.data['value'][0])
             f = LinearFunction.fromSlopePoint(self.slope, fp)
             return f.calc(7)
@@ -76,6 +76,13 @@ class Cceo:
             f = LinearFunction.fromSlopePoint(self.slope, fp)
             print("Oopsie")
             return f.calc(7)
+        elif self.slope is None and len(self.data["day"]) == 1:
+            fp = (self.data['day'][0], self.data['value'][0])
+            self.setSlope(-0.2)
+            f = LinearFunction.fromSlopePoint(self.slope, fp)
+            return f.calc(7)
+
+
         else:
             print("no slope or 0 data points")
             return -(2 ** 16) + 1

@@ -20,6 +20,7 @@ from std_msgs.msg import String
 from std_msgs.msg import Int32MultiArray
 from RingReader_local import *
 from cceo_invest import *
+from subprocess import call
 
 investor = Investor()
 
@@ -75,7 +76,7 @@ def post_numbers_on_cylinders():
                 marker = Marker()
                 marker.id = ind
                 marker.header.stamp = marker_c.header.stamp
-                marker.header.frame_id = marker_c.header.frame_id0
+                marker.header.frame_id = marker_c.header.frame_id
                 marker.pose = pose
                 marker.type = Marker.TEXT_VIEW_FACING
                 marker.text = str(vrednost)[0:3]
@@ -83,7 +84,7 @@ def post_numbers_on_cylinders():
                 marker.frame_locked = False
                 marker.lifetime = rospy.Duration.from_sec(1000)
                 marker.id = ind
-                marker.scale = Vector3(0.1, 0.1, 0.1)
+                marker.scale = Vector3(0.15, 0.15, 0.15)
                 marker.color = ColorRGBA(0, 0, 0, 1)
                 text_array.markers.append(marker)
                 text_pub.publish(text_array)
@@ -182,7 +183,7 @@ def get_pose(e,dist,color,dims,data):
         marker.frame_locked = False
         marker.lifetime = rospy.Duration.from_sec(1000)
         marker.id = marker_num
-        marker.scale = Vector3(0.2, 0.2, 0.2)
+        marker.scale = Vector3(0.15, 0.15, 0.15)
         marker.color = ColorRGBA(0, 0, 0, 1)
         marker_array.markers.append(marker)
         markers_pub_color.publish(marker_array)
@@ -233,11 +234,13 @@ def ratio(e1,e2):
 
     if 1.2 < r1 < 1.5:
         if 1.2 < r2 < 1.5:
-            if 0.9 < r3 < 1.2:
-                return True
+            return True
     return False
 
 def cylinder_marker_callback(data):
+    #print("---------------------")
+    #print(data)
+    #print("---------------------")
     global marker_array_cylinder
     markers_check(data)
     marker_array_cylinder.markers.append(data)
@@ -367,7 +370,7 @@ def map_goals_callback(data):
         uspesno = False
         try_limit = 0
         while(not uspesno and try_limit < 3):
-            if len(candidates)>1:
+            if len(candidates)>=1:
                 print('Ring detected! (hopefully)')
                 corners, ids, _ = cv2.aruco.detectMarkers(cv_image,dictm)
                 
@@ -431,9 +434,19 @@ def map_goals_callback(data):
                             print("postan je bil obarvan marker")
                             print(read_data)
                             print(read_color)
+
                             if(read_data[0] != None):
                                 uspesno = True
-                            
+                                
+                                if(len(read_data) == 1):
+                                    ring_type = " slope "
+                                elif(len(read_data) == 2):
+                                    ring_type = " number "
+                                elif(len(read_data) > 2):
+                                    ring_type = " qr "
+                                
+                                say = "hello " + read_color + " " + ring_type + " circle"
+                                call(["rosrun", "sound_play", "say.py", say])
                                 if(len(read_data) == 1):
                                     investor.addSlope(read_color,read_data[0])
                                 else:
@@ -448,15 +461,9 @@ def map_goals_callback(data):
                 else:
                     print('No markers found')
             
-            elif len(candidates)==0:
-                print('No contours detected')
             else:
-                print('Some contours detected, not sure if it is a ring',len(candidates))
-                for elps in candidates:
-                    e1 = elps[0]
-                    e2 = elps[0]
-                    cv2.ellipse(cv_image,e1,(0,255,0),3)
-                    cv2.ellipse(cv_image,e2,(0,255,0),3)
+                print('No contours detected')
+            
             try_limit += 1
 
         #cv2.imshow('Image',cv_image)
@@ -498,7 +505,10 @@ def map_goals_callback(data):
             print("barva banke:", banka.color, ", vrednost banke 7 dan:",banka.calculateValue())
             print("")
         post_numbers_on_cylinders()
+        print("done posting numbers on cilinders")
+       
         marker_pub.publish(pose)
+        print("posted regresssion result")
         print("")
 
 
@@ -506,7 +516,7 @@ if __name__ == '__main__':
     print("init")
     rospy.init_node('ring_reader', anonymous=False)
     marker_sub = rospy.Subscriber("homography_image_2", String, map_goals_callback)
-    marker_pub = rospy.Publisher("regression_result", Pose,queue_size=1000) 
+    marker_pub = rospy.Publisher("/regression_result", Pose,queue_size=1000) 
     markers_pub_color = rospy.Publisher("markers_color", MarkerArray,queue_size=1000) #marker array za obarvane kroge
     marker_sub_cylinder = rospy.Subscriber("/marker_for_ring_reader", Marker, cylinder_marker_callback) #marker array od cilindrov
     text_pub = rospy.Publisher("markers_text", MarkerArray,queue_size=1000) #text nad cilindri

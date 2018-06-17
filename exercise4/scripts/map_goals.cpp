@@ -67,7 +67,12 @@ void kovanec(){
 
     for(int i = 0; i < 7; i++){
         msg.data = pozicije_roke[which][i];
+        if(msg.data == 10){
+            system("rosrun sound_play say.py 'kobeh'");
+        }
+
         arm_pub.publish(msg);
+
         if (i < 3)
             ros::Duration(1).sleep();
         else
@@ -180,7 +185,7 @@ void regression_result_callback(const geometry_msgs::Pose msg){
     }
 
     // i < dolzina int koordinate[]
-    for(int i = 0;i < len && i < 4;i++) {
+    for(int i = 0;i < 3;i++) {
         
         int barva = reg_goals[i];
         ROS_INFO("grem pozdravljat cilindre %d od %d", i, array_counter_cylinder);
@@ -216,7 +221,7 @@ void regression_result_callback(const geometry_msgs::Pose msg){
 
                 if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                         //ROS_INFO("Hooray, the base moved");
-                        system("rosrun sound_play say.py 'hello cyllinder'");
+                        //system("rosrun sound_play say.py 'hello cyllinder'");
                         kovanec();
                         
                 }
@@ -321,7 +326,7 @@ void premikanje() {
         {60,165, -130}
     };
     */
-    int num_of_goals = 27;
+    int num_of_goals = 28;
     int koordinate [num_of_goals][3] = {
         {45, 230, 0},
         {45, 230, 180},
@@ -343,13 +348,14 @@ void premikanje() {
         {15, 227, 0},
         {15, 227, 90},
         {15, 227, 180},
-        {17, 214, 300},
+        {17, 214, 320},
+        {28, 217, 40},
         {28, 217, 90},
         {28, 217, 180},
         {28, 217, 270},
-        {45, 208, 0},
-        {45, 208, 90},
-        {45, 208, 180},
+        {45, 211, 0},
+        {45, 211, 90},
+        {45, 211, 180},
     };
 
     // i < dolzina int koordinate[]
@@ -361,7 +367,7 @@ void premikanje() {
     //int num_of_destinations = 2;
     //cela mapa
     int i = 0;
-    int num_of_destinations = 27;
+    int num_of_destinations = 28;
     //float pi = 3.14159265358979323846;
     ROS_INFO("premikanje");
     while(i < num_of_destinations) {
@@ -534,11 +540,12 @@ void pozdravljanje_ring() {
 
         if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
                 //ROS_INFO("Hooray, the base moved");
-                system("rosrun sound_play say.py 'my precious'");
+                //system("rosrun sound_play say.py 'my precious'");
                 std_msgs::String msg;
                 msg.data = "picture";
                 homo_pub.publish(msg);
                 ROS_INFO("poslano homo_pub 1");
+                ros::Duration(1).sleep();
 
                 move_base_msgs::MoveBaseGoal goal;
                 goal.target_pose.header.stamp = ros::Time::now();
@@ -557,11 +564,12 @@ void pozdravljanje_ring() {
 
                 if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
 
-                    system("rosrun sound_play say.py 'my precious'");
+                    //system("rosrun sound_play say.py 'my precious'");
                     std_msgs::String msg;
                     msg.data = "picture";
                     homo_pub.publish(msg);
                     ROS_INFO("poslano homo_pub 2");
+                    ros::Duration(1).sleep();
 
                     move_base_msgs::MoveBaseGoal goal;
                     goal.target_pose.header.stamp = ros::Time::now();
@@ -579,11 +587,12 @@ void pozdravljanje_ring() {
                     ac.waitForResult();
 
                     if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
-                        system("rosrun sound_play say.py 'my precious'");
+                        //system("rosrun sound_play say.py 'my precious'");
                         std_msgs::String msg;
                         msg.data = "picture";
                         homo_pub.publish(msg);
                         ROS_INFO("poslano homo_pub 3");
+                        ros::Duration(1).sleep();
                     }
                     else{
                         system("rosrun sound_play say.py 'failed to rotate 2'");
