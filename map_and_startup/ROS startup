@@ -1,0 +1,56 @@
+ONBOARD:
+roscore
+roslaunch exercise3 start_robot.launch
+... map_server
+
+MAPA JE BLA SPREMENJENA!!!!
+
+roslaunch exercise3 amcl_demo.launch
+
+WORKSTAION
+rosrun map_server map_server /home/lambda/ROS/src/exercise3/worlds/mapa1.yaml
+roslaunch turtlebot_rviz_launchers view_navigation.launch
+roslaunch exercise3 map_goals.launch
+
+
+COMPETITION 2
+
+    rosrun rqt_reconfigure rqt_reconfigure
+    rqt_reconfigure_tabela = {0.2, 0.6, 1, 1, 1.5}
+
+ONBOARD
+    rosrun sound_play soundplay_node.py
+    roslaunch exercise3 start_robot.launch
+    roslaunch exercise4 amcl_demo2.launch
+    roslaunch openservorobot manipulator.launch
+    rosrun exercise6 control_manipulator 
+    roslaunch pcl_demos find_cylinder.launch
+
+WORKSTAION
+    rosrun pcl_demos cylinder_marker_filting.py
+    roslaunch turtlebot_rviz_launchers view_navigation.launch 
+    roslaunch exercise4 map_goals.launch 
+
+    rostopic pub /set_manipulator_position std_msgs/Int8 "data: 0"
+
+COMPETITION 3
+
+ONBOARD
+    rosrun sound_play soundplay_node.py
+
+    roslaunch exercise3 start_robot.launch
+    roslaunch exercise4 amcl_demo2.launch
+
+    roslaunch openservorobot manipulator.launch
+    rosrun exercise6 control_manipulator 
+
+    roslaunch pcl_demos find_cylinder.launch
+
+    rosrun exercise4 detect_rings
+    rosrun exercise4 ring_reader
+    
+WORKSTAION
+    
+    rosrun pcl_demos cylinder_marker_filting.py
+    roslaunch turtlebot_rviz_launchers view_navigation.launch 
+    roslaunch exercise4 map_goals.launch 
