@@ -61,7 +61,7 @@ class Cceo:
             try:
                 regr.fit(x, y)
                 print(float(regr.predict(7)))
-                return float(regr.predict(7))
+                return float(regr.predict(7)) / float(regr.predict(5))
             except:
                 #default value
                 print("regression failed for some reason")
@@ -70,17 +70,17 @@ class Cceo:
         elif self.slope is not None and len(self.data["day"]) == 1:
             fp = (self.data['day'][0], self.data['value'][0])
             f = LinearFunction.fromSlopePoint(self.slope, fp)
-            return f.calc(7)
+            return f.calc(7) / f.calc(5)
         elif self.slope is not None and len(self.data["day"]) == 0:
             fp = (3, 1)
             f = LinearFunction.fromSlopePoint(self.slope, fp)
             print("Oopsie")
-            return f.calc(7)
+            return f.calc(7) / f.calc(5)
         elif self.slope is None and len(self.data["day"]) == 1:
             fp = (self.data['day'][0], self.data['value'][0])
-            self.setSlope(-0.2)
+            self.setSlope(0.01)
             f = LinearFunction.fromSlopePoint(self.slope, fp)
-            return f.calc(7)
+            return f.calc(7) / f.calc(5)
 
 
         else:
